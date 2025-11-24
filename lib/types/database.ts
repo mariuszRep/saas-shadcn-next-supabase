@@ -100,11 +100,11 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          created_by: string
+          created_by?: string
           id?: string
           name: string
           updated_at?: string
-          updated_by: string
+          updated_by?: string
         }
         Update: {
           created_at?: string
@@ -376,12 +376,32 @@ export type Database = {
         }
         Returns: undefined
       }
+      create_organization: {
+        Args: { org_name: string }
+        Returns: {
+          created_at: string
+          id: string
+          name: string
+        }[]
+      }
       get_user_by_email: {
         Args: { user_email: string }
         Returns: {
           email: string
           id: string
         }[]
+      }
+      get_user_org_ids: { Args: { check_user_id: string }; Returns: string[] }
+      get_user_role_ids: { Args: { check_user_id: string }; Returns: string[] }
+      has_permission: {
+        Args: {
+          action_param: string
+          org_id_param: string
+          row_id_param?: string
+          table_name_param: string
+          workspace_id_param?: string
+        }
+        Returns: boolean
       }
       user_has_role_on_object: {
         Args: {
@@ -529,4 +549,11 @@ export const Constants = {
     },
   },
 } as const
+
+// Helper type exports for common table rows
+export type Organization = Database["public"]["Tables"]["organizations"]["Row"]
+export type Workspace = Database["public"]["Tables"]["workspaces"]["Row"]
+export type Permission = Database["public"]["Tables"]["permissions"]["Row"]
+export type Role = Database["public"]["Tables"]["roles"]["Row"]
+export type Invitation = Database["public"]["Tables"]["invitations"]["Row"]
 

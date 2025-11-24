@@ -52,24 +52,18 @@ export class OnboardingService {
 
   /**
    * Create an organization and assign Owner role to the creator
-   * Uses transaction to ensure atomicity
+   * Uses SECURITY DEFINER function to bypass RLS for INSERT with RETURNING
    */
   async createOrganizationWithPermissions(
     params: CreateOrganizationParams
   ): Promise<OrganizationWithPermission> {
     // Validate input
     const validated = CreateOrganizationSchema.parse(params)
-    const { name, userId } = validated
+    const { name } = validated
 
-    // Create organization using the authenticated client
+    // Create organization using RPC function (bypasses RLS)
     const { data: organization, error: orgError } = await this.supabase
-      .from('organizations')
-      .insert({
-        name,
-        created_by: userId,
-        updated_by: userId,
-      })
-      .select()
+      .rpc('create_organization', { org_name: name })
       .single()
 
     if (orgError || !organization) {

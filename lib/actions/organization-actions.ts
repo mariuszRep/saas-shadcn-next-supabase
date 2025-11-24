@@ -25,15 +25,9 @@ export async function createOrganization(name: string): Promise<{ success: boole
       return { success: false, error: 'Organization name is too long' }
     }
 
-    // Create organization
+    // Create organization using RPC function (bypasses RLS)
     const { data, error } = await supabase
-      .from('organizations')
-      .insert({
-        name: name.trim(),
-        created_by: user.id,
-        updated_by: user.id,
-      })
-      .select()
+      .rpc('create_organization', { org_name: name.trim() })
       .single()
 
     if (error) {
