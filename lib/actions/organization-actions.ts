@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import type { Organization } from '@/lib/types/database'
 import { getFirstWorkspaceForOrg } from '@/lib/actions/workspace'
 
-export async function createOrganization(name: string): Promise<{ success: boolean; organization?: Organization; error?: string }> {
+export async function createOrganization(name: string): Promise<{ success: boolean; organization?: Pick<Organization, 'id' | 'name' | 'created_at'>; error?: string }> {
   try {
     const supabase = await createClient()
 
@@ -30,18 +30,18 @@ export async function createOrganization(name: string): Promise<{ success: boole
       .rpc('create_organization', { org_name: name.trim() })
       .single()
 
-    if (error) {
+    if (error || !data) {
       console.error('Error creating organization:', error)
       return { success: false, error: 'Failed to create organization' }
     }
 
+    const organization = data as { id: string; name: string; created_at: string }
+
     // Revalidate settings pages
     revalidatePath('/settings')
-    if (data?.id) {
-      revalidatePath(`/organization/${data.id}/settings`)
-    }
+    revalidatePath(`/organization/${organization.id}/settings`)
 
-    return { success: true, organization: data }
+    return { success: true, organization }
   } catch (error) {
     console.error('Unexpected error creating organization:', error)
     return { success: false, error: 'An unexpected error occurred' }
