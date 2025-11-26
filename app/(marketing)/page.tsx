@@ -2,12 +2,13 @@
 
 import * as React from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { CircleCheckIcon, CircleHelpIcon, CircleIcon, LayoutDashboard, LogOut } from 'lucide-react'
 import { ThemeToggle } from '@/components/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useUser } from '@/hooks/use-user'
-import { signOut } from '@/app/auth/actions'
+import { createClient } from '@/lib/supabase/client'
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -58,7 +59,15 @@ const components: { title: string; href: string; description: string }[] = [
 
 export default function Home() {
   const isMobile = useIsMobile()
+  const router = useRouter()
   const { user, loading } = useUser()
+
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/')
+    router.refresh()
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -231,7 +240,7 @@ export default function Home() {
                     <span>Portal</span>
                   </Link>
                 </Button>
-                <Button variant="ghost" onClick={() => signOut()}>
+                <Button variant="ghost" onClick={handleSignOut}>
                   <LogOut className="h-5 w-5" />
                   <span>Sign out</span>
                 </Button>
