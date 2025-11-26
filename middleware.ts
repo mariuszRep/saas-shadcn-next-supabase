@@ -16,7 +16,7 @@ export default async function middleware(request: NextRequest) {
     // Different limits for different endpoints
     const limits = {
       '/login': { name: 'auth-login', limit: 5, windowSeconds: 60 }, // 5 per minute
-      '/signup': { name: 'auth-signup', limit: 3, windowSeconds: 300 }, // 3 per 5 minutes
+      '/signup': { name: 'auth-signup', limit: 5, windowSeconds: 60 }, // 3 per 5 minutes
       '/auth/callback': { name: 'auth-callback', limit: 10, windowSeconds: 60 }, // 10 per minute
     }
 
