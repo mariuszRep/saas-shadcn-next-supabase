@@ -3,9 +3,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import type { Organization } from '@/lib/types/database'
-import { getFirstWorkspaceForOrg } from '@/lib/data/workspace'
+import { getFirstWorkspaceForOrg } from '@/lib/actions/workspace'
 
-export async function createOrganization(name: string): Promise<{ success: boolean; organization?: Organization; error?: string }> {
+export async function createOrganization(name: string): Promise<{ success: boolean; organization?: Pick<Organization, 'id' | 'name' | 'created_at'>; error?: string }> {
   try {
     const supabase = await createClient()
 
@@ -25,26 +25,23 @@ export async function createOrganization(name: string): Promise<{ success: boole
       return { success: false, error: 'Organization name is too long' }
     }
 
-    // Create organization
+    // Create organization using RPC function (bypasses RLS)
     const { data, error } = await supabase
-      .from('organizations')
-      .insert({
-        name: name.trim(),
-        created_by: user.id,
-        updated_by: user.id,
-      })
-      .select()
+      .rpc('create_organization', { org_name: name.trim() })
       .single()
 
-    if (error) {
+    if (error || !data) {
       console.error('Error creating organization:', error)
       return { success: false, error: 'Failed to create organization' }
     }
 
-    // Revalidate settings page
-    revalidatePath('/settings')
+    const organization = data as { id: string; name: string; created_at: string }
 
-    return { success: true, organization: data }
+    // Revalidate settings pages
+    revalidatePath('/settings')
+    revalidatePath(`/organization/${organization.id}/settings`)
+
+    return { success: true, organization }
   } catch (error) {
     console.error('Unexpected error creating organization:', error)
     return { success: false, error: 'An unexpected error occurred' }
@@ -62,11 +59,10 @@ export async function getUserOrganizations(): Promise<{ success: boolean; organi
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Fetch organizations where user has access
+    // Fetch organizations (RLS will handle permission filtering)
     const { data, error } = await supabase
       .from('organizations')
       .select('*')
-      .or(`created_by.eq.${user.id},updated_by.eq.${user.id}`)
       .order('created_at', { ascending: true })
 
     if (error) {
@@ -101,7 +97,7 @@ export async function updateOrganization(organizationId: string, name: string): 
       return { success: false, error: 'Organization name is too long' }
     }
 
-    // Update organization
+    // Update organization (RLS will handle permission checking)
     const { data, error } = await supabase
       .from('organizations')
       .update({
@@ -109,7 +105,6 @@ export async function updateOrganization(organizationId: string, name: string): 
         updated_by: user.id,
       })
       .eq('id', organizationId)
-      .or(`created_by.eq.${user.id},updated_by.eq.${user.id}`)
       .select()
       .single()
 
@@ -118,8 +113,9 @@ export async function updateOrganization(organizationId: string, name: string): 
       return { success: false, error: 'Failed to update organization' }
     }
 
-    // Revalidate settings page
+    // Revalidate settings pages
     revalidatePath('/settings')
+    revalidatePath(`/organization/${organizationId}/settings`)
 
     return { success: true, organization: data }
   } catch (error) {
@@ -139,31 +135,20 @@ export async function deleteOrganization(organizationId: string): Promise<{ succ
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Check if this is a personal organization
-    const { data: org } = await supabase
-      .from('organizations')
-      .select('name')
-      .eq('id', organizationId)
-      .single()
-
-    if (org && org.name === 'Personal') {
-      return { success: false, error: 'Cannot delete personal organization' }
-    }
-
-    // Delete organization
+    // Delete organization (RLS will handle permission checking)
     const { error } = await supabase
       .from('organizations')
       .delete()
       .eq('id', organizationId)
-      .or(`created_by.eq.${user.id},updated_by.eq.${user.id}`)
 
     if (error) {
       console.error('Error deleting organization:', error)
       return { success: false, error: 'Failed to delete organization' }
     }
 
-    // Revalidate settings page
+    // Revalidate settings pages
     revalidatePath('/settings')
+    revalidatePath(`/organization/${organizationId}/settings`)
 
     return { success: true }
   } catch (error) {
@@ -183,7 +168,7 @@ export async function getOrganizationDefaultWorkspace(organizationId: string): P
       return { success: false, error: 'Unauthorized' }
     }
 
-    const workspaceId = await getFirstWorkspaceForOrg(organizationId, user.id)
+    const workspaceId = await getFirstWorkspaceForOrg(organizationId)
 
     return { success: true, workspaceId }
   } catch (error) {
