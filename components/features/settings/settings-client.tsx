@@ -5,9 +5,11 @@ import { Folder, Shield } from 'lucide-react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
 import { Separator } from '@/components/ui/separator'
-import { SettingsSidebar, type SettingsSection } from '@/components/features/settings/settings-sidebar'
+import { SettingsSidebar, type SettingsSection, type AccessSubsection } from '@/components/features/settings/settings-sidebar'
 import { WorkspaceManager } from '@/components/features/workspace/workspace-manager'
-import { PermissionManager } from '@/components/features/settings/permission-manager'
+import { PermissionsView } from '@/components/features/settings/permissions-view'
+import { RolesView } from '@/components/features/settings/roles-view'
+import { InvitationsManager } from '@/components/features/settings/invitations-manager'
 import { getUserOrganizations } from '@/lib/actions/organization-actions'
 import type { Organization } from '@/lib/types/database'
 
@@ -27,19 +29,39 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
   const searchParams = useSearchParams()
   const urlOrgId = params?.organizationId as string | undefined
 
-  const sectionParam = searchParams?.get('section') as SettingsSection | null
-  const initialSection: SettingsSection = sectionParam === 'permissions' ? 'permissions' : 'workspaces'
-
-  const [activeSection, setActiveSection] = React.useState<SettingsSection>(initialSection)
+  const [activeSection, setActiveSection] = React.useState<SettingsSection>('workspaces')
+  const [activeSubsection, setActiveSubsection] = React.useState<AccessSubsection>('permissions')
   const [organizations, setOrganizations] = React.useState<Organization[]>(initialOrganizations)
   const [selectedOrgId, setSelectedOrgId] = React.useState<string | null>(
     urlOrgId || (initialOrganizations.length > 0 ? initialOrganizations[0].id : null)
   )
+  
+  // Track if we're currently updating to prevent loops
+  const isUpdatingRef = React.useRef(false)
 
   const selectedOrg = organizations.find(org => org.id === selectedOrgId)
   
   // Check if we're on an organization-specific settings page
   const isOrgSpecificPage = pathname.includes('/organization/')
+
+  // Sync URL params with state on mount and when URL changes
+  React.useEffect(() => {
+    if (isUpdatingRef.current) {
+      isUpdatingRef.current = false
+      return
+    }
+    
+    const sectionParam = searchParams?.get('section') as SettingsSection | null
+    const subsectionParam = searchParams?.get('subsection') as AccessSubsection | null
+    
+    if (sectionParam && (sectionParam === 'access' || sectionParam === 'workspaces')) {
+      setActiveSection(prev => prev !== sectionParam ? sectionParam : prev)
+    }
+    
+    if (subsectionParam && (subsectionParam === 'permissions' || subsectionParam === 'roles' || subsectionParam === 'invitations')) {
+      setActiveSubsection(prev => prev !== subsectionParam ? subsectionParam : prev)
+    }
+  }, [searchParams])
 
   React.useEffect(() => {
     if (urlOrgId) {
@@ -84,10 +106,45 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
   }
 
   const handleSectionChange = (section: SettingsSection) => {
+    const currentSection = searchParams?.get('section')
+    const currentSubsection = searchParams?.get('subsection')
+    
+    // Only update if the section is actually changing
+    if (currentSection === section) {
+      return
+    }
+    
     setActiveSection(section)
     const paramsCopy = new URLSearchParams(searchParams?.toString() || '')
     paramsCopy.set('section', section)
+
+    // If switching to access section, set default subsection
+    if (section === 'access') {
+      paramsCopy.set('subsection', activeSubsection)
+    } else {
+      paramsCopy.delete('subsection')
+    }
+
     const queryString = paramsCopy.toString()
+    isUpdatingRef.current = true
+    router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
+  }
+
+  const handleSubsectionChange = (subsection: AccessSubsection) => {
+    const currentSection = searchParams?.get('section')
+    const currentSubsection = searchParams?.get('subsection')
+    
+    // Only update if the subsection is actually changing
+    if (currentSection === 'access' && currentSubsection === subsection) {
+      return
+    }
+    
+    setActiveSubsection(subsection)
+    const paramsCopy = new URLSearchParams(searchParams?.toString() || '')
+    paramsCopy.set('section', 'access')
+    paramsCopy.set('subsection', subsection)
+    const queryString = paramsCopy.toString()
+    isUpdatingRef.current = true
     router.replace(queryString ? `${pathname}?${queryString}` : pathname, { scroll: false })
   }
 
@@ -107,6 +164,27 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
     )
   }
 
+  const renderAccessContent = () => {
+    if (!selectedOrgId) {
+      return renderEmptyState(
+        'Select an organization to manage access',
+        'Pick an organization from the sidebar to view and update member access.',
+        'permissions'
+      )
+    }
+
+    switch (activeSubsection) {
+      case 'permissions':
+        return <PermissionsView organizationId={selectedOrgId} />
+      case 'roles':
+        return <RolesView organizationId={selectedOrgId} />
+      case 'invitations':
+        return <InvitationsManager organizationId={selectedOrgId} />
+      default:
+        return null
+    }
+  }
+
   return (
     <SidebarProvider>
       <SettingsSidebar
@@ -115,6 +193,8 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
         onSelectOrg={handleOrganizationChange}
         activeSection={activeSection}
         onSectionChange={handleSectionChange}
+        activeSubsection={activeSubsection}
+        onSubsectionChange={handleSubsectionChange}
         user={user}
         navigationDisabled={!selectedOrgId}
       />
@@ -145,15 +225,9 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
                 'workspaces'
               )
             )
-          ) : selectedOrgId ? (
-            <PermissionManager orgId={selectedOrgId} />
-          ) : (
-            renderEmptyState(
-              'Select an organization to manage permissions',
-              'Pick an organization from the sidebar to view and update member access.',
-              'permissions'
-            )
-          )}
+          ) : activeSection === 'access' ? (
+            renderAccessContent()
+          ) : null}
         </div>
       </SidebarInset>
     </SidebarProvider>

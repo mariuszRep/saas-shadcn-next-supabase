@@ -1,9 +1,14 @@
 'use client'
 
 import * as React from 'react'
-import { Building2, Folder, Shield } from 'lucide-react'
+import { Building2, Folder, Shield, ChevronRight, UserCog, Users, Mail } from 'lucide-react'
 import { NavSwitcher } from '@/components/shared/nav-switcher'
 import { NavUser } from '@/components/shared/nav-user'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import {
   Sidebar,
   SidebarContent,
@@ -14,11 +19,15 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubButton,
+  SidebarMenuSubItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
 import type { Organization } from '@/lib/types/database'
 
-export type SettingsSection = 'workspaces' | 'permissions'
+export type SettingsSection = 'workspaces' | 'access'
+export type AccessSubsection = 'permissions' | 'roles' | 'invitations'
 
 interface SettingsSidebarProps extends React.ComponentProps<typeof Sidebar> {
   organizations: Organization[]
@@ -26,6 +35,8 @@ interface SettingsSidebarProps extends React.ComponentProps<typeof Sidebar> {
   onSelectOrg: (org: { id: string; name: string }) => void
   activeSection: SettingsSection
   onSectionChange: (section: SettingsSection) => void
+  activeSubsection?: AccessSubsection
+  onSubsectionChange?: (subsection: AccessSubsection) => void
   user: {
     name: string
     email: string
@@ -34,18 +45,21 @@ interface SettingsSidebarProps extends React.ComponentProps<typeof Sidebar> {
   navigationDisabled?: boolean
 }
 
-const navItems: { value: SettingsSection; label: string; description: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  {
-    value: 'workspaces',
-    label: 'Workspaces',
-    description: 'Manage organization workspaces',
-    icon: Folder,
-  },
+const accessSubsections: { value: AccessSubsection; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   {
     value: 'permissions',
     label: 'Permissions',
-    description: 'Control member access',
     icon: Shield,
+  },
+  {
+    value: 'roles',
+    label: 'Roles',
+    icon: UserCog,
+  },
+  {
+    value: 'invitations',
+    label: 'Invitations',
+    icon: Mail,
   },
 ]
 
@@ -55,6 +69,8 @@ export function SettingsSidebar({
   onSelectOrg,
   activeSection,
   onSectionChange,
+  activeSubsection = 'permissions',
+  onSubsectionChange,
   user,
   navigationDisabled,
   ...sidebarProps
@@ -75,20 +91,68 @@ export function SettingsSidebar({
         <SidebarGroup>
           <SidebarGroupLabel>Settings</SidebarGroupLabel>
           <SidebarMenu>
-            {navItems.map((item) => (
-              <SidebarMenuItem key={item.value}>
-                <SidebarMenuButton
-                  tooltip={item.label}
-                  isActive={activeSection === item.value}
-                  onClick={() => onSectionChange(item.value)}
-                  disabled={navigationDisabled}
-                  aria-current={activeSection === item.value ? 'page' : undefined}
-                >
-                  <item.icon />
-                  <span>{item.label}</span>
-                </SidebarMenuButton>
+            {/* Workspaces Section */}
+            <SidebarMenuItem>
+              <SidebarMenuButton
+                tooltip="Workspaces"
+                isActive={activeSection === 'workspaces'}
+                onClick={() => onSectionChange('workspaces')}
+                disabled={navigationDisabled}
+                aria-current={activeSection === 'workspaces' ? 'page' : undefined}
+              >
+                <Folder />
+                <span>Workspaces</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+
+            {/* Access Section with Collapsible Subsections */}
+            <Collapsible
+              asChild
+              open={activeSection === 'access'}
+              onOpenChange={(open) => {
+                if (open && !navigationDisabled) {
+                  onSectionChange('access')
+                }
+              }}
+              className="group/collapsible"
+            >
+              <SidebarMenuItem>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuButton
+                    tooltip="Access"
+                    disabled={navigationDisabled}
+                  >
+                    <Users />
+                    <span>Access</span>
+                    <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
+                  </SidebarMenuButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    {accessSubsections.map((subsection) => (
+                      <SidebarMenuSubItem key={subsection.value}>
+                        <SidebarMenuSubButton
+                          isActive={activeSection === 'access' && activeSubsection === subsection.value}
+                          onClick={() => {
+                            if (!navigationDisabled) {
+                              if (activeSection !== 'access') {
+                                onSectionChange('access')
+                              }
+                              onSubsectionChange?.(subsection.value)
+                            }
+                          }}
+                          aria-current={activeSection === 'access' && activeSubsection === subsection.value ? 'page' : undefined}
+                          className={navigationDisabled ? 'pointer-events-none opacity-50' : ''}
+                        >
+                          <subsection.icon className="h-4 w-4" />
+                          <span>{subsection.label}</span>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    ))}
+                  </SidebarMenuSub>
+                </CollapsibleContent>
               </SidebarMenuItem>
-            ))}
+            </Collapsible>
           </SidebarMenu>
         </SidebarGroup>
       </SidebarContent>

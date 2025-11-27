@@ -91,6 +91,8 @@ import { InvitationsManager } from '@/components/features/settings/invitations-m
 
 interface PermissionManagerProps {
   orgId: string
+  defaultTab?: 'permissions' | 'roles' | 'invitations'
+  hideTabs?: boolean
 }
 
 interface PermissionWithDetails {
@@ -114,7 +116,7 @@ interface OrgMember {
   name?: string
 }
 
-export function PermissionManager({ orgId }: PermissionManagerProps) {
+export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs = false }: PermissionManagerProps) {
   const [permissions, setPermissions] = useState<PermissionWithDetails[]>([])
   const [members, setMembers] = useState<OrgMember[]>([])
   const [roles, setRoles] = useState<Role[]>([])
@@ -125,7 +127,7 @@ export function PermissionManager({ orgId }: PermissionManagerProps) {
   const [deleteRoleDialogOpen, setDeleteRoleDialogOpen] = useState(false)
   const [permissionToDelete, setPermissionToDelete] = useState<PermissionWithDetails | null>(null)
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
-  const [activeTab, setActiveTab] = useState('permissions')
+  const [activeTab, setActiveTab] = useState(defaultTab)
 
   // Zustand store for dialog state
   const {
@@ -736,24 +738,28 @@ export function PermissionManager({ orgId }: PermissionManagerProps) {
 
   return (
     <div className="space-y-6">
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full max-w-2xl grid-cols-3">
-          <TabsTrigger value="permissions" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Permissions
-          </TabsTrigger>
-          <TabsTrigger value="roles" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Roles
-          </TabsTrigger>
-          <TabsTrigger value="invitations" className="flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            Invitations
-          </TabsTrigger>
-        </TabsList>
+      {!hideTabs && (
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full max-w-2xl grid-cols-3">
+            <TabsTrigger value="permissions" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Permissions
+            </TabsTrigger>
+            <TabsTrigger value="roles" className="flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Roles
+            </TabsTrigger>
+            <TabsTrigger value="invitations" className="flex items-center gap-2">
+              <Mail className="h-4 w-4" />
+              Invitations
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
 
-        {/* Permissions Tab */}
-        <TabsContent value="permissions" className="space-y-4">
+      {/* Render only the active tab content */}
+      {activeTab === 'permissions' && (
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium">Manage Permissions</h3>
@@ -895,10 +901,12 @@ export function PermissionManager({ orgId }: PermissionManagerProps) {
               </div>
             </div>
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* Roles Tab */}
-        <TabsContent value="roles" className="space-y-4">
+      {/* Roles Tab */}
+      {activeTab === 'roles' && (
+        <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
               <h3 className="text-lg font-medium">Manage Roles</h3>
@@ -1003,13 +1011,15 @@ export function PermissionManager({ orgId }: PermissionManagerProps) {
               </div>
             </div>
           </div>
-        </TabsContent>
+        </div>
+      )}
 
-        {/* Invitations Tab */}
-        <TabsContent value="invitations" className="space-y-4">
+      {/* Invitations Tab */}
+      {activeTab === 'invitations' && (
+        <div className="space-y-4">
           <InvitationsManager organizationId={orgId} />
-        </TabsContent>
-      </Tabs>
+        </div>
+      )}
 
       {/* Add Permission Dialog */}
       <Dialog open={addPermissionOpen} onOpenChange={setAddPermissionOpen}>
