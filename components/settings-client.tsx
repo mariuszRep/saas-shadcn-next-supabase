@@ -71,14 +71,14 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
     }
   }
 
-  const handleOrganizationChange = (orgId: string) => {
-    setSelectedOrgId(orgId)
-    
+  const handleOrganizationChange = (org: { id: string; name: string }) => {
+    setSelectedOrgId(org.id)
+
     // If we're on an org-specific page, update the URL
     if (isOrgSpecificPage) {
       const params = new URLSearchParams(searchParams?.toString() || '')
       const queryString = params.toString()
-      const newPath = `/organization/${orgId}/settings${queryString ? `?${queryString}` : ''}`
+      const newPath = `/organization/${org.id}/settings${queryString ? `?${queryString}` : ''}`
       router.push(newPath)
     }
   }
@@ -113,7 +113,6 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
         organizations={organizations}
         selectedOrgId={selectedOrgId}
         onSelectOrg={handleOrganizationChange}
-        onOrganizationsChange={handleOrganizationsChange}
         activeSection={activeSection}
         onSectionChange={handleSectionChange}
         user={user}

@@ -4,17 +4,19 @@ import * as React from "react"
 import {
   BookOpen,
   Bot,
+  Folder,
   Frame,
   Map,
   PieChart,
   Settings2,
   SquareTerminal,
 } from "lucide-react"
+import { useRouter, useParams } from "next/navigation"
 
 import { NavMain } from "@/components/nav-main"
 import { NavProjects } from "@/components/nav-projects"
-import { NavUser } from "@/components/nav-user"
-import { WorkspaceSwitcher } from "@/components/workspace-switcher"
+import { NavUser } from "@/components/shared/nav-user"
+import { NavSwitcher } from "@/components/shared/nav-switcher"
 import {
   Sidebar,
   SidebarContent,
@@ -138,6 +140,11 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { user, organization } = useWorkspace()
   const [workspaces, setWorkspaces] = React.useState<Workspace[]>([])
   const [loading, setLoading] = React.useState(true)
+  const router = useRouter()
+  const params = useParams()
+
+  const organizationId = params?.organizationId as string | undefined
+  const workspaceId = params?.workspaceId as string | undefined
 
   React.useEffect(() => {
     async function fetchWorkspaces() {
@@ -158,6 +165,12 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
     fetchWorkspaces()
   }, [organization?.id])
 
+  const handleWorkspaceSwitch = (workspace: { id: string; name: string }) => {
+    if (organizationId) {
+      router.push(`/organization/${organizationId}/workspace/${workspace.id}`)
+    }
+  }
+
   const userData = user
     ? {
         name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
@@ -170,13 +183,24 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         avatar: '',
       }
 
+  const manageUrl = organizationId
+    ? `/organization/${organizationId}/settings?section=workspaces`
+    : '/settings'
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         {loading ? (
           <div className="p-4 text-sm text-muted-foreground">Loading workspaces...</div>
         ) : (
-          <WorkspaceSwitcher workspaces={workspaces} />
+          <NavSwitcher
+            items={workspaces}
+            selectedId={workspaceId}
+            onSelect={handleWorkspaceSwitch}
+            icon={Folder}
+            label="Workspace"
+            manageUrl={manageUrl}
+          />
         )}
       </SidebarHeader>
       <SidebarContent>

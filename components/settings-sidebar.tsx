@@ -1,9 +1,9 @@
 'use client'
 
 import * as React from 'react'
-import { Folder, Shield } from 'lucide-react'
-import { OrganizationSwitcher } from '@/components/organization-switcher'
-import { NavUser } from '@/components/nav-user'
+import { Building2, Folder, Shield } from 'lucide-react'
+import { NavSwitcher } from '@/components/shared/nav-switcher'
+import { NavUser } from '@/components/shared/nav-user'
 import {
   Sidebar,
   SidebarContent,
@@ -23,8 +23,7 @@ export type SettingsSection = 'workspaces' | 'permissions'
 interface SettingsSidebarProps extends React.ComponentProps<typeof Sidebar> {
   organizations: Organization[]
   selectedOrgId: string | null
-  onSelectOrg: (orgId: string) => void
-  onOrganizationsChange: () => void
+  onSelectOrg: (org: { id: string; name: string }) => void
   activeSection: SettingsSection
   onSectionChange: (section: SettingsSection) => void
   user: {
@@ -54,7 +53,6 @@ export function SettingsSidebar({
   organizations,
   selectedOrgId,
   onSelectOrg,
-  onOrganizationsChange,
   activeSection,
   onSectionChange,
   user,
@@ -64,11 +62,13 @@ export function SettingsSidebar({
   return (
     <Sidebar collapsible="icon" {...sidebarProps}>
       <SidebarHeader>
-        <OrganizationSwitcher
-          organizations={organizations}
-          selectedOrgId={selectedOrgId}
-          onSelectOrg={onSelectOrg}
-          onOrganizationsChange={onOrganizationsChange}
+        <NavSwitcher
+          items={organizations}
+          selectedId={selectedOrgId}
+          onSelect={onSelectOrg}
+          icon={Building2}
+          label="Organization"
+          manageUrl="/settings?section=organizations"
         />
       </SidebarHeader>
       <SidebarContent>
