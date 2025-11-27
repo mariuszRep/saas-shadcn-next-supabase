@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { InvitationsTable } from '@/components/invitations-table'
+import { InvitationsTable } from '@/components/features/settings/invitations-table'
 
 interface InvitationsPageProps {
   params: Promise<{ organizationId: string }>

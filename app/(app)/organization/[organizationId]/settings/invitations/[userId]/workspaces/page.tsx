@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { getInvitedUserDetails } from '@/lib/actions/invitation-actions'
-import { WorkspacePermissionsForm } from '@/components/workspace-permissions-form'
+import { WorkspacePermissionsForm } from '@/components/features/workspace/workspace-permissions-form'
 
 interface WorkspacePermissionsPageProps {
   params: Promise<{ organizationId: string; userId: string }>

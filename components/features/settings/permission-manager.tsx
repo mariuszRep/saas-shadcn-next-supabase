@@ -87,7 +87,7 @@ import {
 } from '@/lib/schemas'
 import { usePermissionStore } from '@/lib/stores/permission-store'
 import type { PermissionAction, ObjectType, Role } from '@/lib/types/database'
-import { InvitationsManager } from '@/components/invitations-manager'
+import { InvitationsManager } from '@/components/features/settings/invitations-manager'
 
 interface PermissionManagerProps {
   orgId: string

@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { InvitationForm } from '@/components/invitation-form'
+import { InvitationForm } from '@/components/features/settings/invitation-form'
 
 interface NewInvitationPageProps {
   params: Promise<{ organizationId: string }>

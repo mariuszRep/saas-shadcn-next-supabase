@@ -1,7 +1,7 @@
 import { Suspense } from 'react'
 import Link from 'next/link'
-import { LoginForm } from '@/components/login-form'
-import { OAuthButtons } from '@/components/oauth-buttons'
+import { LoginForm } from '@/components/features/auth/login-form'
+import { OAuthButtons } from '@/components/features/auth/oauth-buttons'
 
 export default function LoginPage() {
   return (
