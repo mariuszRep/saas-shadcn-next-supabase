@@ -5,12 +5,15 @@ import { ChevronsUpDown, Settings2, type LucideIcon } from "lucide-react"
 import Link from "next/link"
 
 import {
+  Avatar,
+  AvatarFallback,
+} from "@/components/ui/avatar"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
@@ -53,6 +56,14 @@ export function NavSwitcher({
     return null
   }
 
+  // Get first two letters for avatar fallback
+  const initials = activeItem.name
+    .split(' ')
+    .map(word => word[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -62,20 +73,22 @@ export function NavSwitcher({
               size="lg"
               className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                <Icon className="size-4" />
-              </div>
+              <Avatar className="h-8 w-8 rounded-lg">
+                <AvatarFallback className="rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                  <Icon className="size-4" />
+                </AvatarFallback>
+              </Avatar>
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-medium">{activeItem.name}</span>
-                <span className="truncate text-xs text-muted-foreground">{label}</span>
+                <span className="truncate text-xs">{label}</span>
               </div>
-              <ChevronsUpDown className="ml-auto" />
+              <ChevronsUpDown className="ml-auto size-4" />
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
             className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            align="start"
             side={isMobile ? "bottom" : "right"}
+            align="end"
             sideOffset={4}
           >
             <DropdownMenuLabel className="text-muted-foreground text-xs">
@@ -84,27 +97,21 @@ export function NavSwitcher({
             {items.length === 0 ? (
               <DropdownMenuItem disabled>{emptyMessage}</DropdownMenuItem>
             ) : (
-              items.map((item, index) => (
+              items.map((item) => (
                 <DropdownMenuItem
                   key={item.id}
                   onClick={() => onSelect(item)}
-                  className="gap-2 p-2"
                 >
-                  <div className="flex size-6 items-center justify-center rounded-md border">
-                    <Icon className="size-3.5 shrink-0" />
-                  </div>
+                  <Icon />
                   {item.name}
-                  <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                 </DropdownMenuItem>
               ))
             )}
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="gap-2 p-2" asChild>
+            <DropdownMenuItem asChild>
               <Link href={manageUrl}>
-                <div className="flex size-6 items-center justify-center rounded-md border bg-transparent">
-                  <Settings2 className="size-4" />
-                </div>
-                <div className="text-muted-foreground font-medium">Manage</div>
+                <Settings2 />
+                Manage
               </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
