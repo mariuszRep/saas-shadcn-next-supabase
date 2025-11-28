@@ -13,8 +13,8 @@ import {
 } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 
-import { NavMain } from "@/components/layout/nav-main"
-import { NavProjects } from "@/components/layout/nav-projects"
+import { NavMain } from "@/components/shared/nav-main"
+import { NavProjects } from "@/components/shared/nav-projects"
 import { NavUser } from "@/components/shared/nav-user"
 import { NavSwitcher } from "@/components/shared/nav-switcher"
 import {
@@ -173,15 +173,15 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
 
   const userData = user
     ? {
-        name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-        email: user.email || '',
-        avatar: user.user_metadata?.avatar_url || '',
-      }
+      name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+      email: user.email || '',
+      avatar: user.user_metadata?.avatar_url || '',
+    }
     : {
-        name: 'Guest',
-        email: 'guest@example.com',
-        avatar: '',
-      }
+      name: 'Guest',
+      email: 'guest@example.com',
+      avatar: '',
+    }
 
   const manageUrl = organizationId
     ? `/organization/${organizationId}/settings?section=workspaces`
