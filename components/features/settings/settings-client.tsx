@@ -3,8 +3,7 @@
 import * as React from 'react'
 import { Folder, Shield } from 'lucide-react'
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { Separator } from '@/components/ui/separator'
+import { SidebarLayout } from '@/components/layout/sidebar-layout'
 import { SettingsSidebar, type SettingsSection, type AccessSubsection } from '@/components/features/settings/settings-sidebar'
 import { WorkspaceManager } from '@/components/features/workspace/workspace-manager'
 import { PermissionsView } from '@/components/features/settings/permissions-view'
@@ -35,12 +34,12 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
   const [selectedOrgId, setSelectedOrgId] = React.useState<string | null>(
     urlOrgId || (initialOrganizations.length > 0 ? initialOrganizations[0].id : null)
   )
-  
+
   // Track if we're currently updating to prevent loops
   const isUpdatingRef = React.useRef(false)
 
   const selectedOrg = organizations.find(org => org.id === selectedOrgId)
-  
+
   // Check if we're on an organization-specific settings page
   const isOrgSpecificPage = pathname.includes('/organization/')
 
@@ -50,14 +49,14 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
       isUpdatingRef.current = false
       return
     }
-    
+
     const sectionParam = searchParams?.get('section') as SettingsSection | null
     const subsectionParam = searchParams?.get('subsection') as AccessSubsection | null
-    
+
     if (sectionParam && (sectionParam === 'access' || sectionParam === 'workspaces')) {
       setActiveSection(prev => prev !== sectionParam ? sectionParam : prev)
     }
-    
+
     if (subsectionParam && (subsectionParam === 'permissions' || subsectionParam === 'roles' || subsectionParam === 'invitations')) {
       setActiveSubsection(prev => prev !== subsectionParam ? subsectionParam : prev)
     }
@@ -108,12 +107,12 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
   const handleSectionChange = (section: SettingsSection) => {
     const currentSection = searchParams?.get('section')
     const currentSubsection = searchParams?.get('subsection')
-    
+
     // Only update if the section is actually changing
     if (currentSection === section) {
       return
     }
-    
+
     setActiveSection(section)
     const paramsCopy = new URLSearchParams(searchParams?.toString() || '')
     paramsCopy.set('section', section)
@@ -133,12 +132,12 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
   const handleSubsectionChange = (subsection: AccessSubsection) => {
     const currentSection = searchParams?.get('section')
     const currentSubsection = searchParams?.get('subsection')
-    
+
     // Only update if the subsection is actually changing
     if (currentSection === 'access' && currentSubsection === subsection) {
       return
     }
-    
+
     setActiveSubsection(subsection)
     const paramsCopy = new URLSearchParams(searchParams?.toString() || '')
     paramsCopy.set('section', 'access')
@@ -186,50 +185,47 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
   }
 
   return (
-    <SidebarProvider>
-      <SettingsSidebar
-        organizations={organizations}
-        selectedOrgId={selectedOrgId}
-        onSelectOrg={handleOrganizationChange}
-        activeSection={activeSection}
-        onSectionChange={handleSectionChange}
-        activeSubsection={activeSubsection}
-        onSubsectionChange={handleSubsectionChange}
-        user={user}
-        navigationDisabled={!selectedOrgId}
-      />
-      <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-          <div className="flex w-full items-center gap-2 px-4">
-            <SidebarTrigger className="-ml-1" />
-            <Separator orientation="vertical" className="mr-2 data-[orientation=vertical]:h-4" />
-            <div>
-              <p className="text-sm text-muted-foreground">Organization Settings</p>
-              <h1 className="text-lg font-semibold leading-6">
-                {selectedOrg?.name || 'Select an organization'}
-              </h1>
-            </div>
-          </div>
-        </header>
-        <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
-          {activeSection === 'workspaces' ? (
-            selectedOrgId && selectedOrg ? (
-              <WorkspaceManager
-                organizationId={selectedOrgId}
-                organizationName={selectedOrg.name}
-              />
-            ) : (
-              renderEmptyState(
-                'Select an organization to manage workspaces',
-                'Choose an organization from the sidebar to create, edit, or remove workspaces.',
-                'workspaces'
-              )
-            )
-          ) : activeSection === 'access' ? (
-            renderAccessContent()
-          ) : null}
+    <SidebarLayout
+      sidebar={
+        <SettingsSidebar
+          organizations={organizations}
+          selectedOrgId={selectedOrgId}
+          onSelectOrg={handleOrganizationChange}
+          activeSection={activeSection}
+          onSectionChange={handleSectionChange}
+          activeSubsection={activeSubsection}
+          onSubsectionChange={handleSubsectionChange}
+          user={user}
+          navigationDisabled={!selectedOrgId}
+        />
+      }
+      header={
+        <div>
+          <p className="text-sm text-muted-foreground">Organization Settings</p>
+          <h1 className="text-lg font-semibold leading-6">
+            {selectedOrg?.name || 'Select an organization'}
+          </h1>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      }
+    >
+      <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
+        {activeSection === 'workspaces' ? (
+          selectedOrgId && selectedOrg ? (
+            <WorkspaceManager
+              organizationId={selectedOrgId}
+              organizationName={selectedOrg.name}
+            />
+          ) : (
+            renderEmptyState(
+              'Select an organization to manage workspaces',
+              'Choose an organization from the sidebar to create, edit, or remove workspaces.',
+              'workspaces'
+            )
+          )
+        ) : activeSection === 'access' ? (
+          renderAccessContent()
+        ) : null}
+      </div>
+    </SidebarLayout>
   )
 }
