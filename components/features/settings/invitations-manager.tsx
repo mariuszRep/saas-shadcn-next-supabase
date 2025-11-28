@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getOrganizationInvitations, type InvitationWithDetails } from '@/lib/actions/invitation-actions'
-import { InvitationsTable } from '@/components/features/settings/invitations-table'
+import { InvitationsView } from '@/components/features/settings/invitations-view'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'
@@ -62,5 +62,5 @@ export function InvitationsManager({ organizationId }: InvitationsManagerProps) 
     )
   }
 
-  return <InvitationsTable organizationId={organizationId} invitations={invitations} />
+  return <InvitationsView organizationId={organizationId} invitations={invitations} />
 }

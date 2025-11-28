@@ -44,7 +44,13 @@ function getInitials(email?: string, name?: string) {
   return email ? email.slice(0, 2).toUpperCase() : '??'
 }
 
-export function PermissionsView({ organizationId }: { organizationId: string }) {
+interface PermissionsViewProps {
+  organizationId: string
+  onAddPermission?: () => void
+  onBulkRevoke?: (permissions: PermissionWithDetails[]) => void
+}
+
+export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke }: PermissionsViewProps) {
   const [permissions, setPermissions] = useState<PermissionWithDetails[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedRows, setSelectedRows] = useState<PermissionWithDetails[]>([])
@@ -174,40 +180,51 @@ export function PermissionsView({ organizationId }: { organizationId: string }) 
     },
   ], [])
 
-  return (
-    <div className="space-y-4">
-      {selectedRows.length > 0 && (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => {
-              // Handle bulk delete
-              console.log('Delete selected:', selectedRows)
-            }}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Revoke {selectedRows.length} permission{selectedRows.length > 1 ? 's' : ''}
-          </Button>
-        </div>
-      )}
-      <DataTable
-        columns={columns}
-        data={permissions}
-        searchKey="user_email"
-        searchPlaceholder="Filter by email..."
-        title="Manage Permissions"
-        description="Assign roles to users for organization-level or workspace-level access"
-        action={
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Permission
-          </Button>
+  // Bulk action button to render in toolbar
+  const bulkActionButton = selectedRows.length > 0 ? (
+    <Button
+      variant="destructive"
+      size="sm"
+      onClick={() => {
+        if (onBulkRevoke) {
+          onBulkRevoke(selectedRows)
+        } else {
+          console.log('Bulk revoke clicked - no handler provided', selectedRows)
         }
-        loading={loading}
-        enableRowSelection={true}
-        onRowSelectionChange={setSelectedRows}
-      />
-    </div>
+      }}
+    >
+      <Trash2 className="mr-2 h-4 w-4" />
+      Revoke ({selectedRows.length})
+    </Button>
+  ) : null
+
+  return (
+    <DataTable
+      columns={columns}
+      data={permissions}
+      searchKey="user_email"
+      searchPlaceholder="Filter by email..."
+      title="Manage Permissions"
+      description="Assign roles to users for organization-level or workspace-level access"
+      action={
+        <Button
+          size="sm"
+          onClick={() => {
+            if (onAddPermission) {
+              onAddPermission()
+            } else {
+              console.log('Add permission clicked - no handler provided')
+            }
+          }}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Permission
+        </Button>
+      }
+      loading={loading}
+      enableRowSelection={true}
+      onRowSelectionChange={setSelectedRows}
+      bulkActions={bulkActionButton}
+    />
   )
 }

@@ -36,7 +36,13 @@ function getActionBadgeVariant(action: PermissionAction) {
   }
 }
 
-export function RolesView({ organizationId }: { organizationId: string }) {
+interface RolesViewProps {
+  organizationId: string
+  onAddRole?: () => void
+  onBulkDelete?: (roles: Role[]) => void
+}
+
+export function RolesView({ organizationId, onAddRole, onBulkDelete }: RolesViewProps) {
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedRows, setSelectedRows] = useState<Role[]>([])
@@ -163,40 +169,51 @@ export function RolesView({ organizationId }: { organizationId: string }) {
     },
   ], [])
 
-  return (
-    <div className="space-y-4">
-      {selectedRows.length > 0 && (
-        <div className="flex items-center gap-2">
-          <Button
-            variant="destructive"
-            size="sm"
-            onClick={() => {
-              // Handle bulk delete
-              console.log('Delete selected:', selectedRows)
-            }}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete {selectedRows.length} role{selectedRows.length > 1 ? 's' : ''}
-          </Button>
-        </div>
-      )}
-      <DataTable
-        columns={columns}
-        data={roles}
-        searchKey="name"
-        searchPlaceholder="Filter by name..."
-        title="Manage Roles"
-        description="Create and manage roles that define permission sets"
-        action={
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Role
-          </Button>
+  // Bulk action button to render in toolbar
+  const bulkActionButton = selectedRows.length > 0 ? (
+    <Button
+      variant="destructive"
+      size="sm"
+      onClick={() => {
+        if (onBulkDelete) {
+          onBulkDelete(selectedRows)
+        } else {
+          console.log('Bulk delete clicked - no handler provided', selectedRows)
         }
-        loading={loading}
-        enableRowSelection={true}
-        onRowSelectionChange={setSelectedRows}
-      />
-    </div>
+      }}
+    >
+      <Trash2 className="mr-2 h-4 w-4" />
+      Delete ({selectedRows.length})
+    </Button>
+  ) : null
+
+  return (
+    <DataTable
+      columns={columns}
+      data={roles}
+      searchKey="name"
+      searchPlaceholder="Filter by name..."
+      title="Manage Roles"
+      description="Create and manage roles that define permission sets"
+      action={
+        <Button
+          size="sm"
+          onClick={() => {
+            if (onAddRole) {
+              onAddRole()
+            } else {
+              console.log('Add role clicked - no handler provided')
+            }
+          }}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Role
+        </Button>
+      }
+      loading={loading}
+      enableRowSelection={true}
+      onRowSelectionChange={setSelectedRows}
+      bulkActions={bulkActionButton}
+    />
   )
 }
