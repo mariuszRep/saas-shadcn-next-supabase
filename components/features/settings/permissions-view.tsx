@@ -16,9 +16,28 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { getAllOrgPermissions } from '@/lib/actions/permissions'
+import { getAllOrgPermissions, revokeRole, getOrgMembers } from '@/lib/actions/permission.actions'
+import { getAllRoles } from '@/lib/actions/role.actions'
 import { toast } from 'sonner'
 import type { Role } from '@/lib/types/database'
+import { PermissionForm } from '@/components/features/settings/permission-form'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
 
 type ObjectType = 'organization' | 'workspace'
 
@@ -55,10 +74,40 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
   const [loading, setLoading] = useState(true)
   const [selectedRows, setSelectedRows] = useState<PermissionWithDetails[]>([])
 
+  // Dialog states
+  const [addPermissionOpen, setAddPermissionOpen] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [bulkRevokeDialogOpen, setBulkRevokeDialogOpen] = useState(false)
+  const [permissionToDelete, setPermissionToDelete] = useState<PermissionWithDetails | null>(null)
+
+  // Data for form
+  const [roles, setRoles] = useState<Role[]>([])
+  const [members, setMembers] = useState<Array<{ user_id: string; name?: string; email?: string }>>([])
+
   useEffect(() => {
     loadPermissions()
+    loadFormData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [organizationId])
+
+  async function loadFormData() {
+    try {
+      const [rolesResult, membersResult] = await Promise.all([
+        getAllRoles(),
+        getOrgMembers(organizationId)
+      ])
+
+      if (rolesResult.success && rolesResult.roles) {
+        setRoles(rolesResult.roles)
+      }
+
+      if (membersResult.success && membersResult.members) {
+        setMembers(membersResult.members)
+      }
+    } catch (error) {
+      console.error('Error loading form data:', error)
+    }
+  }
 
   async function loadPermissions() {
     setLoading(true)
@@ -74,6 +123,57 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
       toast.error('Failed to load permissions')
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function handleDeletePermission() {
+    if (!permissionToDelete) return
+
+    try {
+      const result = await revokeRole(permissionToDelete.id)
+      if (result.success) {
+        toast.success('Permission revoked successfully')
+        setDeleteDialogOpen(false)
+        setPermissionToDelete(null)
+        loadPermissions()
+      } else {
+        toast.error(result.error || 'Failed to revoke permission')
+      }
+    } catch (error) {
+      console.error('Error revoking permission:', error)
+      toast.error('An unexpected error occurred')
+    }
+  }
+
+  async function handleBulkRevoke() {
+    if (selectedRows.length === 0) return
+
+    try {
+      let successCount = 0
+      let failCount = 0
+
+      for (const permission of selectedRows) {
+        const result = await revokeRole(permission.id)
+        if (result.success) {
+          successCount++
+        } else {
+          failCount++
+        }
+      }
+
+      if (successCount > 0) {
+        toast.success(`Revoked ${successCount} permission(s)`)
+      }
+      if (failCount > 0) {
+        toast.error(`Failed to revoke ${failCount} permission(s)`)
+      }
+
+      setBulkRevokeDialogOpen(false)
+      setSelectedRows([])
+      loadPermissions()
+    } catch (error) {
+      console.error('Error revoking permissions:', error)
+      toast.error('An unexpected error occurred')
     }
   }
 
@@ -169,7 +269,13 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
                 Copy permission ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-destructive">
+              <DropdownMenuItem
+                className="text-destructive"
+                onClick={() => {
+                  setPermissionToDelete(permission)
+                  setDeleteDialogOpen(true)
+                }}
+              >
                 <Trash2 className="mr-2 h-4 w-4" />
                 Revoke permission
               </DropdownMenuItem>
@@ -189,7 +295,7 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
         if (onBulkRevoke) {
           onBulkRevoke(selectedRows)
         } else {
-          console.log('Bulk revoke clicked - no handler provided', selectedRows)
+          setBulkRevokeDialogOpen(true)
         }
       }}
     >
@@ -199,32 +305,113 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
   ) : null
 
   return (
-    <DataTable
-      columns={columns}
-      data={permissions}
-      searchKey="user_email"
-      searchPlaceholder="Filter by email..."
-      title="Manage Permissions"
-      description="Assign roles to users for organization-level or workspace-level access"
-      action={
-        <Button
-          size="sm"
-          onClick={() => {
-            if (onAddPermission) {
-              onAddPermission()
-            } else {
-              console.log('Add permission clicked - no handler provided')
-            }
-          }}
-        >
-          <Plus className="mr-2 h-4 w-4" />
-          Add Permission
-        </Button>
-      }
-      loading={loading}
-      enableRowSelection={true}
-      onRowSelectionChange={setSelectedRows}
-      bulkActions={bulkActionButton}
-    />
+    <>
+      <DataTable
+        columns={columns}
+        data={permissions}
+        searchKey="user_email"
+        searchPlaceholder="Filter by email..."
+        title="Manage Permissions"
+        description="Assign roles to users for organization-level or workspace-level access"
+        action={
+          <Button
+            size="sm"
+            onClick={() => {
+              if (onAddPermission) {
+                onAddPermission()
+              } else {
+                setAddPermissionOpen(true)
+              }
+            }}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add Permission
+          </Button>
+        }
+        loading={loading}
+        enableRowSelection={true}
+        onRowSelectionChange={setSelectedRows}
+        bulkActions={bulkActionButton}
+      />
+
+      {/* Add Permission Dialog */}
+      <Dialog open={addPermissionOpen} onOpenChange={setAddPermissionOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Add New Permission</DialogTitle>
+            <DialogDescription>
+              Assign a role to a user for an organization or workspace
+            </DialogDescription>
+          </DialogHeader>
+          <PermissionForm
+            orgId={organizationId}
+            roles={roles}
+            members={members}
+            onSuccess={() => {
+              setAddPermissionOpen(false)
+              loadPermissions()
+            }}
+            onCancel={() => setAddPermissionOpen(false)}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Revoke Permission Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke Permission?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will revoke <strong>{permissionToDelete?.user_name || permissionToDelete?.user_email}</strong>
+              &apos;s <strong>{permissionToDelete?.role?.name}</strong> role on{' '}
+              <strong>
+                {permissionToDelete?.object_type} {permissionToDelete?.object_id ? (permissionToDelete.object_id === 'all' ? '(All)' : 'Specific') : '(All)'}
+              </strong>.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeletePermission}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Revoke Permission
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Revoke Confirmation Dialog */}
+      <AlertDialog open={bulkRevokeDialogOpen} onOpenChange={setBulkRevokeDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke {selectedRows.length} Permission(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will revoke permissions for the following users:
+              <ul className="mt-2 list-disc list-inside">
+                {selectedRows.slice(0, 5).map((permission) => (
+                  <li key={permission.id}>
+                    <strong>{permission.user_name || permission.user_email}</strong> - {permission.role?.name}
+                  </li>
+                ))}
+                {selectedRows.length > 5 && (
+                  <li>...and {selectedRows.length - 5} more</li>
+                )}
+              </ul>
+              This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkRevoke}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Revoke {selectedRows.length} Permission(s)
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   )
 }

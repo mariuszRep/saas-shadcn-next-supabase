@@ -4,7 +4,7 @@ import { z } from 'zod'
 // PERMISSION SCHEMAS
 // =====================================================
 
-const permissionActionEnum = z.enum(['select', 'insert', 'update', 'delete'])
+const permissionActionEnum = z.enum(['select', 'insert', 'update', 'delete', 'create', 'read', 'manage'])
 const objectTypeEnum = z.enum(['organization', 'workspace'])
 
 export const addPermissionSchema = z.object({

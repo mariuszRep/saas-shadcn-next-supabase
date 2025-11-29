@@ -69,25 +69,24 @@ import {
 } from '@/components/ui/select'
 import { toast } from 'sonner'
 import {
+  getAllRoles,
+  deleteRole,
+} from '@/lib/actions/role.actions'
+import {
   assignRole,
   revokeRole,
   getAllOrgPermissions,
   getOrgMembers,
-  getAllRoles,
   getUserOrganizations,
   getOrganizationWorkspaces,
-  createRole,
-  updateRole,
-  deleteRole,
-} from '@/lib/actions/permissions'
+} from '@/lib/actions/permission.actions'
 import {
   addPermissionSchema,
-  roleFormSchema,
-  updateRoleSchema,
 } from '@/lib/schemas'
+import { RoleForm } from '@/components/features/settings/role-form'
 import { usePermissionStore } from '@/lib/stores/permission-store'
 import type { PermissionAction, ObjectType, Role } from '@/lib/types/database'
-import { InvitationsManager } from '@/components/features/settings/invitations-manager'
+import { PermissionsView } from '@/components/features/settings/permissions-view'
 
 interface PermissionManagerProps {
   orgId: string
@@ -141,22 +140,9 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
     setSelectedRole,
   } = usePermissionStore()
 
-  // Form state for Add Permission
-  const [selectedPrincipalId, setSelectedPrincipalId] = useState('')
-  const [selectedRoleId, setSelectedRoleId] = useState('')
-  const [selectedObjectType, setSelectedObjectType] = useState<ObjectType>('organization')
-  const [selectedObjectId, setSelectedObjectId] = useState<string>('all')
-  const [submitting, setSubmitting] = useState(false)
 
-  // Form for Add/Edit Role
-  const roleForm = useForm({
-    resolver: zodResolver(editRoleOpen ? updateRoleSchema : roleFormSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      permissions: [] as PermissionAction[],
-    },
-  })
+
+
 
   // Table state
   const [sorting, setSorting] = useState<SortingState>([])
@@ -188,22 +174,7 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
     }
   }, [selectedObjectType, orgId])
 
-  // Pre-fill form when editing role
-  useEffect(() => {
-    if (editRoleOpen && selectedRole) {
-      roleForm.reset({
-        name: selectedRole.name,
-        description: selectedRole.description || '',
-        permissions: selectedRole.permissions,
-      })
-    } else if (!editRoleOpen) {
-      roleForm.reset({
-        name: '',
-        description: '',
-        permissions: [],
-      })
-    }
-  }, [editRoleOpen, selectedRole])
+
 
   async function loadData() {
     setLoading(true)
@@ -250,138 +221,9 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
     }
   }
 
-  async function handleAssignRole() {
-    if (!selectedPrincipalId || !selectedRoleId) {
-      toast.error('Please select a user and role')
-      return
-    }
 
-    setSubmitting(true)
-    try {
-      const result = await assignRole({
-        org_id: orgId,
-        principal_type: 'user',
-        principal_id: selectedPrincipalId,
-        role_id: selectedRoleId,
-        object_type: selectedObjectType,
-        object_id: selectedObjectId === 'all' ? null : selectedObjectId,
-      })
 
-      if (result.success) {
-        toast.success('Permission assigned successfully')
-        loadData()
-        // Reset form
-        setSelectedPrincipalId('')
-        setSelectedRoleId('')
-        setSelectedObjectType('organization')
-        setSelectedObjectId('all')
-        setAddPermissionOpen(false)
-      } else {
-        toast.error(result.error || 'Failed to assign permission')
-      }
-    } catch (error) {
-      console.error('Error assigning role:', error)
-      toast.error('An unexpected error occurred')
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
-  async function handleDeletePermission() {
-    if (!permissionToDelete) return
-
-    try {
-      const result = await revokeRole(permissionToDelete.id)
-      if (result.success) {
-        toast.success('Permission revoked successfully')
-        loadData()
-      } else {
-        toast.error(result.error || 'Failed to revoke permission')
-      }
-    } catch (error) {
-      console.error('Error revoking permission:', error)
-      toast.error('An unexpected error occurred')
-    } finally {
-      setDeleteDialogOpen(false)
-      setPermissionToDelete(null)
-    }
-  }
-
-  async function handleDeleteSelected() {
-    const selectedRows = table.getFilteredSelectedRowModel().rows
-    if (selectedRows.length === 0) return
-
-    const confirmed = confirm(`Are you sure you want to revoke ${selectedRows.length} permission(s)?`)
-    if (!confirmed) return
-
-    try {
-      for (const row of selectedRows) {
-        await revokeRole(row.original.id)
-      }
-      toast.success(`Revoked ${selectedRows.length} permission(s)`)
-      setRowSelection({})
-      loadData()
-    } catch (error) {
-      console.error('Error revoking permissions:', error)
-      toast.error('Failed to revoke some permissions')
-    }
-  }
-
-  async function handleCreateRole(data: any) {
-    console.log('handleCreateRole called with data:', data)
-    console.log('orgId:', orgId)
-
-    setSubmitting(true)
-    try {
-      const payload = {
-        ...data,
-        org_id: orgId,
-      }
-      console.log('Calling createRole with payload:', payload)
-
-      const result = await createRole(payload)
-      console.log('createRole result:', result)
-
-      if (result.success) {
-        toast.success('Role created successfully')
-        roleForm.reset()
-        setAddRoleOpen(false)
-        loadData()
-      } else {
-        console.error('Create role failed:', result.error)
-        toast.error(result.error || 'Failed to create role')
-      }
-    } catch (error) {
-      console.error('Error creating role:', error)
-      toast.error('An unexpected error occurred')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  async function handleUpdateRole(data: any) {
-    if (!selectedRole) return
-
-    setSubmitting(true)
-    try {
-      const result = await updateRole(selectedRole.id, data)
-
-      if (result.success) {
-        toast.success('Role updated successfully')
-        roleForm.reset()
-        setEditRoleOpen(false)
-        setSelectedRole(null)
-        loadData()
-      } else {
-        toast.error(result.error || 'Failed to update role')
-      }
-    } catch (error) {
-      console.error('Error updating role:', error)
-      toast.error('An unexpected error occurred')
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
   async function handleDeleteRole() {
     if (!roleToDelete) return
@@ -511,7 +353,7 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
         const permission = row.original
         return (
           <div className="flex flex-wrap gap-1">
-            {permission.role?.permissions.map((action) => (
+            {(permission.role?.permissions as PermissionAction[])?.map((action) => (
               <Badge key={action} variant={getActionBadgeVariant(action)} className="text-xs">
                 {action}
               </Badge>
@@ -634,7 +476,7 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
         const role = row.original
         return (
           <div className="flex flex-wrap gap-1">
-            {role.permissions.map((action) => (
+            {(role.permissions as PermissionAction[])?.map((action) => (
               <Badge key={action} variant={getActionBadgeVariant(action)} className="text-xs">
                 {action}
               </Badge>
@@ -739,7 +581,7 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
   return (
     <div className="space-y-6">
       {!hideTabs && (
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
           <TabsList className="grid w-full max-w-2xl grid-cols-3">
             <TabsTrigger value="permissions" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
@@ -760,147 +602,7 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
       {/* Render only the active tab content */}
       {activeTab === 'permissions' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-lg font-medium">Manage Permissions</h3>
-              <p className="text-sm text-muted-foreground">
-                Assign roles to users for organization-level or workspace-level access
-              </p>
-            </div>
-            <Button onClick={() => setAddPermissionOpen(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Permission
-            </Button>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="relative max-w-lg w-full">
-                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Filter by email..."
-                    value={(table.getColumn('user_email')?.getFilterValue() as string) ?? ''}
-                    onChange={(event) =>
-                      table.getColumn('user_email')?.setFilterValue(event.target.value)
-                    }
-                    className="pl-9 w-[400px]"
-                  />
-                </div>
-                {table.getFilteredSelectedRowModel().rows.length > 0 && (
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={handleDeleteSelected}
-                  >
-                    Revoke ({table.getFilteredSelectedRowModel().rows.length})
-                  </Button>
-                )}
-              </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="ml-auto">
-                    Columns <ChevronDown className="ml-2 h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  {table
-                    .getAllColumns()
-                    .filter((column) => column.getCanHide())
-                    .map((column) => {
-                      return (
-                        <DropdownMenuCheckboxItem
-                          key={column.id}
-                          className="capitalize"
-                          checked={column.getIsVisible()}
-                          onCheckedChange={(value) =>
-                            column.toggleVisibility(!!value)
-                          }
-                        >
-                          {column.id}
-                        </DropdownMenuCheckboxItem>
-                      )
-                    })}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  {table.getHeaderGroups().map((headerGroup) => (
-                    <TableRow key={headerGroup.id}>
-                      {headerGroup.headers.map((header) => {
-                        return (
-                          <TableHead key={header.id}>
-                            {header.isPlaceholder
-                              ? null
-                              : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                          </TableHead>
-                        )
-                      })}
-                    </TableRow>
-                  ))}
-                </TableHeader>
-                <TableBody>
-                  {table.getRowModel().rows?.length ? (
-                    table.getRowModel().rows.map((row) => (
-                      <TableRow
-                        key={row.id}
-                        data-state={row.getIsSelected() && 'selected'}
-                      >
-                        {row.getVisibleCells().map((cell) => (
-                          <TableCell key={cell.id}>
-                            {flexRender(
-                              cell.column.columnDef.cell,
-                              cell.getContext()
-                            )}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))
-                  ) : (
-                    <TableRow>
-                      <TableCell
-                        colSpan={permissionsColumns.length}
-                        className="h-24 text-center"
-                      >
-                        {loading ? 'Loading...' : 'No results.'}
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-
-            <div className="flex items-center justify-end space-x-2 py-4">
-              <div className="flex-1 text-sm text-muted-foreground">
-                {table.getFilteredSelectedRowModel().rows.length} of{' '}
-                {table.getFilteredRowModel().rows.length} row(s) selected.
-              </div>
-              <div className="space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.previousPage()}
-                  disabled={!table.getCanPreviousPage()}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => table.nextPage()}
-                  disabled={!table.getCanNextPage()}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          </div>
+          <PermissionsView organizationId={orgId} />
         </div>
       )}
 
@@ -1021,114 +723,7 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
         </div>
       )}
 
-      {/* Add Permission Dialog */}
-      <Dialog open={addPermissionOpen} onOpenChange={setAddPermissionOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Add New Permission</DialogTitle>
-            <DialogDescription>
-              Assign a role to a user for an organization or workspace
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <Label htmlFor="principal">User</Label>
-              <Select value={selectedPrincipalId} onValueChange={setSelectedPrincipalId}>
-                <SelectTrigger id="principal">
-                  <SelectValue placeholder="Select a user" />
-                </SelectTrigger>
-                <SelectContent>
-                  {uniqueMembers.map((member) => (
-                    <SelectItem key={member.user_id} value={member.user_id}>
-                      {member.name || member.email || member.user_id}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                The user who will receive the permission
-              </p>
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="role">Role</Label>
-              <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-                <SelectTrigger id="role">
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {roles.map((role) => (
-                    <SelectItem key={role.id} value={role.id}>
-                      {role.name} {role.description && `- ${role.description}`}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                The role defining what actions are allowed
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="objectType">Object Type</Label>
-              <Select value={selectedObjectType} onValueChange={(value) => setSelectedObjectType(value as ObjectType)}>
-                <SelectTrigger id="objectType">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="organization">Organization</SelectItem>
-                  <SelectItem value="workspace">Workspace</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                The type of object this permission applies to
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="objectId">
-                {selectedObjectType === 'organization' ? 'Organization' : 'Workspace'}
-              </Label>
-              <Select value={selectedObjectId} onValueChange={setSelectedObjectId}>
-                <SelectTrigger id="objectId">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All {selectedObjectType}s</SelectItem>
-                  {selectedObjectType === 'organization' ? (
-                    organizations.map((org) => (
-                      <SelectItem key={org.id} value={org.id}>
-                        {org.name}
-                      </SelectItem>
-                    ))
-                  ) : (
-                    workspaces.map((ws) => (
-                      <SelectItem key={ws.id} value={ws.id}>
-                        {ws.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-              <p className="text-sm text-muted-foreground">
-                Specific {selectedObjectType} or all {selectedObjectType}s
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAddPermissionOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleAssignRole}
-              disabled={submitting || !selectedPrincipalId || !selectedRoleId}
-            >
-              {submitting ? 'Adding...' : 'Add Permission'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       {/* Add/Edit Role Dialog */}
       <Dialog open={addRoleOpen || editRoleOpen} onOpenChange={(open) => {
@@ -1136,7 +731,6 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
           setAddRoleOpen(false)
           setEditRoleOpen(false)
           setSelectedRole(null)
-          roleForm.reset()
         }
       }}>
         <DialogContent className="max-w-2xl">
@@ -1146,106 +740,25 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
               {editRoleOpen ? 'Update the role details below' : 'Define a new role with specific permissions'}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={roleForm.handleSubmit(
-            editRoleOpen ? handleUpdateRole : handleCreateRole,
-            (errors) => {
-              console.log('Form validation errors:', errors)
-              toast.error('Please fix the form errors')
-            }
-          )} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="roleName">Role Name</Label>
-              <Input
-                id="roleName"
-                placeholder="e.g., Editor, Viewer, Manager"
-                {...roleForm.register('name')}
-              />
-              {roleForm.formState.errors.name && (
-                <p className="text-sm text-destructive">{roleForm.formState.errors.name.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="roleDescription">Description (Optional)</Label>
-              <Input
-                id="roleDescription"
-                placeholder="Brief description of this role"
-                {...roleForm.register('description')}
-              />
-              {roleForm.formState.errors.description && (
-                <p className="text-sm text-destructive">{roleForm.formState.errors.description.message}</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label>Permissions</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {(['select', 'insert', 'update', 'delete'] as PermissionAction[]).map((permission) => (
-                  <div key={permission} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`perm-${permission}`}
-                      checked={roleForm.watch('permissions')?.includes(permission)}
-                      onCheckedChange={(checked) => {
-                        const current = roleForm.getValues('permissions') || []
-                        if (checked) {
-                          roleForm.setValue('permissions', [...current, permission])
-                        } else {
-                          roleForm.setValue('permissions', current.filter(p => p !== permission))
-                        }
-                      }}
-                    />
-                    <label htmlFor={`perm-${permission}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 capitalize">
-                      {permission}
-                    </label>
-                  </div>
-                ))}
-              </div>
-              {roleForm.formState.errors.permissions && (
-                <p className="text-sm text-destructive">{roleForm.formState.errors.permissions.message}</p>
-              )}
-            </div>
-
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => {
-                setAddRoleOpen(false)
-                setEditRoleOpen(false)
-                setSelectedRole(null)
-                roleForm.reset()
-              }}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? 'Saving...' : editRoleOpen ? 'Update Role' : 'Create Role'}
-              </Button>
-            </DialogFooter>
-          </form>
+          <RoleForm
+            orgId={orgId}
+            initialData={selectedRole}
+            onSuccess={() => {
+              setAddRoleOpen(false)
+              setEditRoleOpen(false)
+              setSelectedRole(null)
+              loadData()
+            }}
+            onCancel={() => {
+              setAddRoleOpen(false)
+              setEditRoleOpen(false)
+              setSelectedRole(null)
+            }}
+          />
         </DialogContent>
       </Dialog>
 
-      {/* Delete Permission Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Revoke Permission?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will revoke <strong>{permissionToDelete?.user_name || permissionToDelete?.user_email}</strong>
-              &apos;s <strong>{permissionToDelete?.role?.name}</strong> role on{' '}
-              <strong>
-                {permissionToDelete && getObjectDisplayName(permissionToDelete.object_type, permissionToDelete.object_id)}
-              </strong>.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeletePermission}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Revoke Permission
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
 
       {/* Delete Role Confirmation Dialog */}
       <AlertDialog open={deleteRoleDialogOpen} onOpenChange={setDeleteRoleDialogOpen}>
