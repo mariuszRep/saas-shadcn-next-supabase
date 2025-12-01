@@ -30,7 +30,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { signOut } from "@/lib/actions/auth-actions"
+import { signOut } from "@/features/auth/auth-actions"
 import { useOrganizationWorkspace } from "@/components/providers/organization-workspace-provider"
 
 export function NavUser({

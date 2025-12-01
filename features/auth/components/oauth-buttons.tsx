@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { signInWithOAuth } from '@/lib/actions/auth-actions'
+import { signInWithOAuth } from '@/features/auth/auth-actions'
 
 export function OAuthButtons() {
   const [isLoading, setIsLoading] = useState<string | null>(null)

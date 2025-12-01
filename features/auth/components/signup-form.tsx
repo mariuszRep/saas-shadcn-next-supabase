@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { signUp } from '@/lib/actions/auth-actions'
+import { signUp } from '@/features/auth/auth-actions'
 
 export function SignupForm() {
   const [isLoading, setIsLoading] = useState(false)
