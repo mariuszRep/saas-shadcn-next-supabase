@@ -83,10 +83,10 @@ import {
 import {
   addPermissionSchema,
 } from '@/lib/schemas'
-import { RoleForm } from '@/components/features/settings/role-form'
+import { RoleForm } from '@/features/settings/components/role-form'
 import { usePermissionStore } from '@/lib/stores/permission-store'
 import type { PermissionAction, ObjectType, Role } from '@/lib/types/database'
-import { PermissionsView } from '@/components/features/settings/permissions-view'
+import { PermissionsView } from '@/features/settings/components/permissions-view'
 
 interface PermissionManagerProps {
   orgId: string

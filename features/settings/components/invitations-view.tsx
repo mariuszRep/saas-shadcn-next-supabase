@@ -34,7 +34,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { revokeInvitation } from '@/lib/actions/invitation-actions'
-import { DataTable } from '@/components/shared/data-table'
+import { DataTable } from '@/features/shared/components/data-table'
 
 interface Invitation {
   id: string

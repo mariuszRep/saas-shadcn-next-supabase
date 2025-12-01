@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, MoreHorizontal, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DataTable } from '@/components/shared/data-table'
+import { DataTable } from '@/features/shared/components/data-table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -20,7 +20,7 @@ import { getAllOrgPermissions, revokeRole, getOrgMembers } from '@/lib/actions/p
 import { getAllRoles } from '@/lib/actions/role.actions'
 import { toast } from 'sonner'
 import type { Role } from '@/lib/types/database'
-import { PermissionForm } from '@/components/features/settings/permission-form'
+import { PermissionForm } from '@/features/settings/components/permission-form'
 import {
   Dialog,
   DialogContent,

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { getOrganizationInvitations, type InvitationWithDetails } from '@/lib/actions/invitation-actions'
-import { InvitationsView } from '@/components/features/settings/invitations-view'
+import { InvitationsView } from '@/features/settings/components/invitations-view'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { AlertCircle } from 'lucide-react'

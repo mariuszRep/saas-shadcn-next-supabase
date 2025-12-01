@@ -1,4 +1,4 @@
-import { WorkspaceSidebar } from "@/components/features/workspace/workspace-sidebar"
+import { WorkspaceSidebar } from "@/features/workspaces/components/workspace-sidebar"
 import { SidebarLayout } from "@/components/layout/sidebar-layout"
 import {
   Breadcrumb,

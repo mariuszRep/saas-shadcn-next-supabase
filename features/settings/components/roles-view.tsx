@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DataTable } from '@/components/shared/data-table'
+import { DataTable } from '@/features/shared/components/data-table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -33,7 +33,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 import { getAllRoles, deleteRole } from '@/lib/actions/role.actions'
-import { RoleForm } from '@/components/features/settings/role-form'
+import { RoleForm } from '@/features/settings/components/role-form'
 import { toast } from 'sonner'
 import type { Role, PermissionAction } from '@/lib/types/database'
 

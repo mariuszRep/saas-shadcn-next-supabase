@@ -1,6 +1,6 @@
 import Link from 'next/link'
-import { SignupForm } from '@/components/features/auth/signup-form'
-import { OAuthButtons } from '@/components/features/auth/oauth-buttons'
+import { SignupForm } from '@/features/auth/components/signup-form'
+import { OAuthButtons } from '@/features/auth/components/oauth-buttons'
 
 export default function SignupPage() {
   return (

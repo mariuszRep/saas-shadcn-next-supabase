@@ -4,7 +4,7 @@ import { ReactNode, useMemo, useState } from 'react'
 import { ColumnDef } from '@tanstack/react-table'
 import { Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DataTable } from '@/components/shared/data-table'
+import { DataTable } from '@/features/shared/components/data-table'
 
 interface EntityTableProps<TData, TValue> {
   // DataTable props
