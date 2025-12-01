@@ -7,7 +7,7 @@ import { CircleCheckIcon, CircleHelpIcon, CircleIcon, LayoutDashboard, LogOut } 
 import { ThemeToggle } from '@/components/composed/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useUser } from '@/hooks/use-user'
+import { useAuth } from '@/features/auth/use-auth'
 import { createClient } from '@/lib/supabase/client'
 import {
   NavigationMenu,
@@ -60,7 +60,7 @@ const components: { title: string; href: string; description: string }[] = [
 export default function Home() {
   const isMobile = useIsMobile()
   const router = useRouter()
-  const { user, loading } = useUser()
+  const { user, loading } = useAuth()
 
   const handleSignOut = async () => {
     const supabase = createClient()

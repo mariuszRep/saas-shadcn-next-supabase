@@ -4,7 +4,12 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { User } from '@supabase/supabase-js'
 
-export function useUser() {
+/**
+ * Auth hook for client components
+ * Use this in Client Components that need auth state
+ * For Server Components, use createClient() from @/lib/supabase/server
+ */
+export function useAuth() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
 
