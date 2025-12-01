@@ -127,7 +127,7 @@ export function InvitationsList({ organizationId, onInviteUser, onBulkRevoke }: 
         toast.success('Invitation revoked', {
           description: 'The invitation has been revoked and user access removed',
         })
-        router.refresh()
+        refresh()
       } else {
         toast.error('Failed to revoke invitation', {
           description: result.error || 'An error occurred',
@@ -141,6 +141,52 @@ export function InvitationsList({ organizationId, onInviteUser, onBulkRevoke }: 
     } finally {
       setIsRevoking(false)
       setInvitationToDelete(null)
+    }
+  }
+
+  const handleBulkRevoke = async () => {
+    if (onBulkRevoke) {
+      // Use custom handler if provided
+      onBulkRevoke(selectedRows)
+      setShowBulkRevokeDialog(false)
+      return
+    }
+
+    // Default implementation
+    setIsRevoking(true)
+    try {
+      const invitationIds = selectedRows.map(inv => inv.id)
+      const result = await bulkRevokeInvitations(invitationIds, organizationId)
+
+      if (result.success && result.data) {
+        const { count, errors } = result.data
+
+        if (errors.length > 0) {
+          toast.warning(`Revoked ${count} invitation(s)`, {
+            description: `${errors.length} failed: ${errors[0]}`,
+          })
+        } else {
+          toast.success(`Revoked ${count} invitation(s)`, {
+            description: 'The invitations have been revoked and user access removed',
+          })
+        }
+
+        // Clear selection and refresh
+        setSelectedRows([])
+        refresh()
+      } else {
+        toast.error('Failed to revoke invitations', {
+          description: result.error || 'An error occurred',
+        })
+      }
+    } catch (error) {
+      console.error('Error bulk revoking invitations:', error)
+      toast.error('Failed to revoke invitations', {
+        description: 'An unexpected error occurred',
+      })
+    } finally {
+      setIsRevoking(false)
+      setShowBulkRevokeDialog(false)
     }
   }
 
@@ -161,13 +207,7 @@ export function InvitationsList({ organizationId, onInviteUser, onBulkRevoke }: 
     <Button
       variant="destructive"
       size="sm"
-      onClick={() => {
-        if (onBulkRevoke) {
-          onBulkRevoke(selectedRows)
-        } else {
-          console.log('Bulk revoke clicked - no handler provided', selectedRows)
-        }
-      }}
+      onClick={() => setShowBulkRevokeDialog(true)}
     >
       <Trash2 className="mr-2 h-4 w-4" />
       Revoke ({selectedRows.length})
@@ -339,6 +379,29 @@ export function InvitationsList({ organizationId, onInviteUser, onBulkRevoke }: 
               disabled={isRevoking}
             >
               {isRevoking ? 'Revoking...' : 'Revoke'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Bulk Revoke Confirmation Dialog */}
+      <AlertDialog open={showBulkRevokeDialog} onOpenChange={setShowBulkRevokeDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Revoke {selectedRows.length} Invitation(s)?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to revoke {selectedRows.length} invitation(s)? This will remove user access
+              to the organization for all selected invitations and cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isRevoking}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkRevoke}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={isRevoking}
+            >
+              {isRevoking ? 'Revoking...' : `Revoke ${selectedRows.length}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -399,7 +399,26 @@ export async function getOrganizationInvitations(
     const invitationsWithDetails: InvitationWithDetails[] = []
 
     for (const invitation of invitationsData) {
+      // Find the organization permission for this user
       const permission = permissions?.find(p => p.principal_id === invitation.user_id)
+
+      // Skip if no permission found (shouldn't happen but safeguard)
+      if (!permission) {
+        continue
+      }
+
+      // Only include invitations that match this organization
+      // An invitation matches if the org permission was created within 10 seconds of the invitation
+      const invitationCreatedAt = new Date(invitation.created_at).getTime()
+      const permissionCreatedAt = new Date(permission.created_at).getTime()
+      const timeDiff = Math.abs(invitationCreatedAt - permissionCreatedAt)
+
+      // If permission was created more than 10 seconds apart from invitation, skip it
+      // This means the invitation was for a different organization
+      if (timeDiff > 10000) {
+        continue
+      }
+
       const roles = permission?.roles as unknown as { name: string; description: string | null }
 
       // Get workspace count
