@@ -31,7 +31,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { signOut } from "@/features/auth/auth-actions"
-import { useOrganizationWorkspace } from "@/components/providers/organization-workspace-provider"
+import { useOrganizationWorkspace } from "@/features/shared/use-workspace-context"
 
 export function NavUser({
   user,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useOrganizationWorkspaceRequired } from '@/components/providers/organization-workspace-provider'
+import { useOrganizationWorkspaceRequired } from '@/features/shared/use-workspace-context'
 import { useAuth } from '@/features/auth/use-auth'
 
 export function useWorkspace() {
