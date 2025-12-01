@@ -2,12 +2,12 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { InvitationService } from '@/lib/services/invitation-service'
+import { InvitationService } from './invitation-service'
 import type {
   SendInvitationParams,
   AssignWorkspacePermissionsParams,
   InvitedUserDetails,
-} from '@/lib/services/invitation-service'
+} from './invitation-service'
 import { revalidatePath } from 'next/cache'
 
 /**
@@ -255,6 +255,65 @@ export async function revokeInvitation(
     console.error('Error revoking invitation:', error)
     const errorMessage =
       error instanceof Error ? error.message : 'Failed to revoke invitation'
+    return { success: false, error: errorMessage }
+  }
+}
+
+/**
+ * Bulk revoke multiple invitations
+ */
+export async function bulkRevokeInvitations(
+  invitationIds: string[],
+  organizationId: string
+): Promise<{
+  success: boolean
+  data?: { count: number; errors: string[] }
+  error?: string
+}> {
+  try {
+    const supabase = await createClient()
+    const adminClient = createAdminClient()
+
+    // Get current user
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return { success: false, error: 'Unauthorized' }
+    }
+
+    // Create invitation service instance with admin client
+    const invitationService = new InvitationService(adminClient)
+
+    let successCount = 0
+    const errors: string[] = []
+
+    // Revoke each invitation
+    for (const invitationId of invitationIds) {
+      try {
+        await invitationService.revokeInvitation(invitationId, organizationId)
+        successCount++
+      } catch (error) {
+        console.error(`Error revoking invitation ${invitationId}:`, error)
+        errors.push(
+          `${invitationId}: ${error instanceof Error ? error.message : 'Unknown error'}`
+        )
+      }
+    }
+
+    // Revalidate organization settings page
+    revalidatePath(`/organization/${organizationId}/settings`)
+
+    return {
+      success: true,
+      data: { count: successCount, errors },
+    }
+  } catch (error) {
+    console.error('Error in bulk revoke invitations:', error)
+    const errorMessage =
+      error instanceof Error ? error.message : 'Failed to bulk revoke invitations'
     return { success: false, error: errorMessage }
   }
 }

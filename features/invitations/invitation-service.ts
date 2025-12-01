@@ -438,14 +438,15 @@ export class InvitationService {
   }
 
   /**
-   * Revoke an invitation and remove all associated permissions
-   * This will delete the invitation and all permissions for the user in the organization
+   * Revoke an invitation and remove only the permissions created by this invitation
+   * This will delete the invitation and only the permissions created by the inviter
+   * within a reasonable time window of the invitation creation
    */
   async revokeInvitation(invitationId: string, organizationId: string) {
     // Validate input
     AcceptInvitationSchema.parse({ invitationId })
 
-    // Get invitation
+    // Get invitation with full details
     const { data: invitation, error: getError } = await this.supabase
       .from('invitations')
       .select('*')
@@ -457,13 +458,27 @@ export class InvitationService {
     }
 
     const userId = invitation.user_id
+    const inviterId = invitation.created_by
+    const invitationCreatedAt = new Date(invitation.created_at)
 
-    // Delete all permissions for this user in this organization
+    // Calculate a time window: 10 seconds before and after the invitation was created
+    // This accounts for any timing differences during the transaction
+    const timeWindowStart = new Date(invitationCreatedAt.getTime() - 10000)
+    const timeWindowEnd = new Date(invitationCreatedAt.getTime() + 10000)
+
+    // Delete only permissions that were:
+    // 1. Created for this user
+    // 2. In this organization
+    // 3. Created by the same inviter
+    // 4. Created within the time window of the invitation
     const { error: permissionsError } = await this.supabase
       .from('permissions')
       .delete()
       .eq('principal_id', userId)
       .eq('org_id', organizationId)
+      .eq('created_by', inviterId)
+      .gte('created_at', timeWindowStart.toISOString())
+      .lte('created_at', timeWindowEnd.toISOString())
 
     if (permissionsError) {
       throw new Error(`Failed to delete permissions: ${permissionsError.message}`)

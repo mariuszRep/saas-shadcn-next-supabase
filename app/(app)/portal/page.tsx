@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
-import { acceptInvitation } from '@/lib/actions/invitation-actions'
+import { acceptInvitation } from '@/features/invitations/invitation-actions'
 
 export default async function PortalPage() {
   const supabase = await createClient()
@@ -24,9 +24,8 @@ export default async function PortalPage() {
     const expiresAt = new Date(pendingInvitation.expires_at)
 
     if (now <= expiresAt) {
-      // Accept invitation and redirect to refresh permissions
-      await acceptInvitation(pendingInvitation.id)
-      redirect('/portal')
+      // Redirect to a dedicated invitation acceptance route
+      redirect(`/accept-invitation?id=${pendingInvitation.id}`)
     } else {
       // Mark as expired
       await supabase

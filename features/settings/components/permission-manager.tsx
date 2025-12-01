@@ -87,6 +87,7 @@ import { RoleForm } from '@/features/settings/components/role-form'
 import { usePermissionStore } from '@/lib/stores/permission-store'
 import type { PermissionAction, ObjectType, Role } from '@/lib/types/database'
 import { PermissionsView } from '@/features/settings/components/permissions-view'
+import { InvitationsList } from '@/features/invitations/components/invitations-list'
 
 interface PermissionManagerProps {
   orgId: string
@@ -166,13 +167,6 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
   useEffect(() => {
     loadData()
   }, [orgId])
-
-  useEffect(() => {
-    // Load workspaces when object type changes to workspace
-    if (selectedObjectType === 'workspace') {
-      loadWorkspaces()
-    }
-  }, [selectedObjectType, orgId])
 
 
 
@@ -719,7 +713,7 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
       {/* Invitations Tab */}
       {activeTab === 'invitations' && (
         <div className="space-y-4">
-          <InvitationsManager organizationId={orgId} />
+          <InvitationsList organizationId={orgId} />
         </div>
       )}
 

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useOnboardingStore } from '@/lib/stores/onboarding-store'
-import { acceptInvitation } from '@/lib/actions/invitation-actions'
+import { acceptInvitation } from '@/features/invitations/invitation-actions'
 import {
   createOrganizationWithPermissions,
   createWorkspaceWithPermissions,

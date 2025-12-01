@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { assignWorkspacePermissions } from '@/lib/actions/invitation-actions'
+import { assignWorkspacePermissions } from '@/features/invitations/invitation-actions'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import {

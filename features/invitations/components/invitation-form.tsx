@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { z } from 'zod'
-import { sendInvitation } from '@/lib/actions/invitation-actions'
+import { sendInvitation } from '../invitation-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,15 +15,10 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card'
+  DialogFooter,
+} from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { ArrowLeft, Send } from 'lucide-react'
+import { Send } from 'lucide-react'
 
 const invitationSchema = z.object({
   email: z.string().email('Invalid email format'),
@@ -38,11 +33,14 @@ interface Role {
 
 interface InvitationFormProps {
   organizationId: string
-  organizationName: string
+  organizationName?: string
   roles: Role[]
+  loadingRoles?: boolean
+  onSuccess?: () => void
+  onCancel?: () => void
 }
 
-export function InvitationForm({ organizationId, organizationName, roles }: InvitationFormProps) {
+export function InvitationForm({ organizationId, roles, loadingRoles = false, onSuccess, onCancel }: InvitationFormProps) {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [orgRoleId, setOrgRoleId] = useState('')
@@ -53,7 +51,6 @@ export function InvitationForm({ organizationId, organizationName, roles }: Invi
     e.preventDefault()
     setErrors({})
 
-    // Validate form
     const validation = invitationSchema.safeParse({ email, orgRoleId })
     if (!validation.success) {
       const fieldErrors: { email?: string; orgRoleId?: string } = {}
@@ -75,7 +72,6 @@ export function InvitationForm({ organizationId, organizationName, roles }: Invi
       })
 
       if (result.success && result.data) {
-        // Show different message for existing vs new users
         if (result.data.isExistingUser) {
           toast.success('Invitation sent to existing user!', {
             description: `${email} has been sent a magic link to access this organization.`,
@@ -86,10 +82,16 @@ export function InvitationForm({ organizationId, organizationName, roles }: Invi
           })
         }
 
-        // Redirect to workspace permissions page
-        router.push(
-          `/organization/${organizationId}/settings/invitations/${result.data.userId}/workspaces`
-        )
+        setEmail('')
+        setOrgRoleId('')
+
+        if (onSuccess) {
+          onSuccess()
+        } else {
+          router.push(
+            `/organization/${organizationId}/settings/invitations/${result.data.userId}/workspaces`
+          )
+        }
       } else {
         toast.error('Failed to send invitation', {
           description: result.error || 'An unexpected error occurred',
@@ -106,46 +108,40 @@ export function InvitationForm({ organizationId, organizationName, roles }: Invi
   }
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-2xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>User Details</CardTitle>
-          <CardDescription>
-            Enter the email address and role for the new user
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email Address</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="user@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              disabled={isLoading}
-              className={errors.email ? 'border-red-500' : ''}
-            />
-            {errors.email && (
-              <p className="text-sm text-red-500">{errors.email}</p>
-            )}
-          </div>
+    <form onSubmit={handleSubmit}>
+      <div className="space-y-4 py-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email Address</Label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="user@example.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
+            className={errors.email ? 'border-red-500' : ''}
+          />
+          {errors.email && (
+            <p className="text-sm text-red-500">{errors.email}</p>
+          )}
+        </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="role">Organization Role</Label>
-            <Select
-              value={orgRoleId}
-              onValueChange={setOrgRoleId}
-              disabled={isLoading}
+        <div className="space-y-2">
+          <Label htmlFor="role">Organization Role</Label>
+          <Select
+            value={orgRoleId}
+            onValueChange={setOrgRoleId}
+            disabled={isLoading || loadingRoles}
+          >
+            <SelectTrigger
+              id="role"
+              className={errors.orgRoleId ? 'border-red-500' : ''}
             >
-              <SelectTrigger
-                id="role"
-                className={errors.orgRoleId ? 'border-red-500' : ''}
-              >
-                <SelectValue placeholder="Select a role" />
-              </SelectTrigger>
-              <SelectContent>
-                {roles.map((role) => (
+              <SelectValue placeholder={loadingRoles ? "Loading roles..." : "Select a role"} />
+            </SelectTrigger>
+            <SelectContent>
+              {roles.length > 0 ? (
+                roles.map((role) => (
                   <SelectItem key={role.id} value={role.id}>
                     <div className="flex flex-col">
                       <span className="font-medium capitalize">{role.name}</span>
@@ -156,38 +152,40 @@ export function InvitationForm({ organizationId, organizationName, roles }: Invi
                       )}
                     </div>
                   </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {errors.orgRoleId && (
-              <p className="text-sm text-red-500">{errors.orgRoleId}</p>
-            )}
-          </div>
-        </CardContent>
-        <CardFooter className="flex justify-between">
+                ))
+              ) : (
+                <div className="p-2 text-sm text-muted-foreground">No roles available</div>
+              )}
+            </SelectContent>
+          </Select>
+          {errors.orgRoleId && (
+            <p className="text-sm text-red-500">{errors.orgRoleId}</p>
+          )}
+        </div>
+      </div>
+
+      <DialogFooter>
+        {onCancel && (
           <Button
             type="button"
             variant="outline"
-            onClick={() => router.push(`/organization/${organizationId}/settings/invitations`)}
+            onClick={onCancel}
             disabled={isLoading}
           >
-            <ArrowLeft className="mr-2 h-4 w-4" />
             Cancel
           </Button>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <span className="mr-2">Sending...</span>
-              </>
-            ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                Send Invitation
-              </>
-            )}
-          </Button>
-        </CardFooter>
-      </Card>
+        )}
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (
+            <>Sending...</>
+          ) : (
+            <>
+              <Send className="mr-2 h-4 w-4" />
+              Send Invitation
+            </>
+          )}
+        </Button>
+      </DialogFooter>
     </form>
   )
 }

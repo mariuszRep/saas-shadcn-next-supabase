@@ -2,17 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { getOrganizationInvitations, type InvitationWithDetails } from '@/lib/actions/invitation-actions'
-import { InvitationsView } from '@/features/settings/components/invitations-view'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { AlertCircle } from 'lucide-react'
+import { getOrganizationInvitations, type InvitationWithDetails } from './invitation-actions'
 
-interface InvitationsManagerProps {
+interface UseInvitationsProps {
   organizationId: string
 }
 
-export function InvitationsManager({ organizationId }: InvitationsManagerProps) {
+export function useInvitations({ organizationId }: UseInvitationsProps) {
   const router = useRouter()
   const [invitations, setInvitations] = useState<InvitationWithDetails[]>([])
   const [loading, setLoading] = useState(true)
@@ -43,24 +39,11 @@ export function InvitationsManager({ organizationId }: InvitationsManagerProps) 
     }
   }
 
-  if (loading) {
-    return (
-      <div className="space-y-4">
-        <Skeleton className="h-12 w-full" />
-        <Skeleton className="h-64 w-full" />
-      </div>
-    )
+  return {
+    invitations,
+    loading,
+    error,
+    refresh: loadInvitations,
+    router,
   }
-
-  if (error) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>{error}</AlertDescription>
-      </Alert>
-    )
-  }
-
-  return <InvitationsView organizationId={organizationId} invitations={invitations} />
 }

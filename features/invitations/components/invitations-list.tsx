@@ -1,12 +1,20 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useMemo, useEffect } from 'react'
 import { formatDistanceToNow } from 'date-fns'
 import { ColumnDef } from '@tanstack/react-table'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -32,9 +40,13 @@ import {
   Settings,
   Mail,
   Trash2,
+  AlertCircle,
 } from 'lucide-react'
-import { revokeInvitation } from '@/lib/actions/invitation-actions'
-import { DataTable } from '@/features/shared/components/data-table'
+import { revokeInvitation, bulkRevokeInvitations } from '../invitation-actions'
+import { DataTable } from '@/components/composed/data-table'
+import { useInvitations } from '../use-invitations'
+import { InvitationForm } from './invitation-form'
+import { getAllRoles } from '@/lib/actions/role.actions'
 
 interface Invitation {
   id: string
@@ -47,18 +59,53 @@ interface Invitation {
   createdAt: string
 }
 
-interface InvitationsViewProps {
+interface InvitationsListProps {
   organizationId: string
-  invitations: Invitation[]
   onInviteUser?: () => void
   onBulkRevoke?: (invitations: Invitation[]) => void
 }
 
-export function InvitationsView({ organizationId, invitations, onInviteUser, onBulkRevoke }: InvitationsViewProps) {
-  const router = useRouter()
+export function InvitationsList({ organizationId, onInviteUser, onBulkRevoke }: InvitationsListProps) {
+  const { invitations, loading, error, router, refresh } = useInvitations({ organizationId })
   const [invitationToDelete, setInvitationToDelete] = useState<string | null>(null)
   const [isRevoking, setIsRevoking] = useState(false)
   const [selectedRows, setSelectedRows] = useState<Invitation[]>([])
+  const [showInviteDialog, setShowInviteDialog] = useState(false)
+  const [showBulkRevokeDialog, setShowBulkRevokeDialog] = useState(false)
+  const [roles, setRoles] = useState<Array<{ id: string; name: string; description: string | null }>>([])
+  const [loadingRoles, setLoadingRoles] = useState(false)
+
+  useEffect(() => {
+    if (showInviteDialog) {
+      loadRoles()
+    }
+  }, [showInviteDialog])
+
+  async function loadRoles() {
+    try {
+      setLoadingRoles(true)
+      const result = await getAllRoles()
+
+      console.log('getAllRoles result:', result)
+
+      if (result.success && result.roles) {
+        // All roles are usable for organization invitations
+        // Roles with org_id = null are system-wide roles
+        // Roles with org_id set are org-specific custom roles
+        setRoles(result.roles)
+      } else {
+        console.error('Failed to load roles:', result.error)
+        toast.error(result.error || 'Failed to load roles')
+        setRoles([])
+      }
+    } catch (error) {
+      console.error('Error loading roles:', error)
+      toast.error('Failed to load roles')
+      setRoles([])
+    } finally {
+      setLoadingRoles(false)
+    }
+  }
 
   const handleConfigureWorkspaces = (userId: string) => {
     router.push(`/organization/${organizationId}/settings/invitations/${userId}/workspaces`)
@@ -80,7 +127,6 @@ export function InvitationsView({ organizationId, invitations, onInviteUser, onB
         toast.success('Invitation revoked', {
           description: 'The invitation has been revoked and user access removed',
         })
-        // Refresh the page to update the invitations list
         router.refresh()
       } else {
         toast.error('Failed to revoke invitation', {
@@ -111,7 +157,6 @@ export function InvitationsView({ organizationId, invitations, onInviteUser, onB
     }
   }
 
-  // Bulk action button to render in toolbar
   const bulkActionButton = selectedRows.length > 0 ? (
     <Button
       variant="destructive"
@@ -229,6 +274,25 @@ export function InvitationsView({ organizationId, invitations, onInviteUser, onB
     },
   ], [])
 
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <Skeleton className="h-12 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>{error}</AlertDescription>
+      </Alert>
+    )
+  }
+
   return (
     <>
       <DataTable
@@ -245,7 +309,7 @@ export function InvitationsView({ organizationId, invitations, onInviteUser, onB
               if (onInviteUser) {
                 onInviteUser()
               } else {
-                console.log('Invite user clicked - no handler provided')
+                setShowInviteDialog(true)
               }
             }}
           >
@@ -258,7 +322,6 @@ export function InvitationsView({ organizationId, invitations, onInviteUser, onB
         bulkActions={bulkActionButton}
       />
 
-      {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!invitationToDelete} onOpenChange={() => setInvitationToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -280,7 +343,27 @@ export function InvitationsView({ organizationId, invitations, onInviteUser, onB
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Invite User</DialogTitle>
+            <DialogDescription>
+              Send an invitation to join this organization
+            </DialogDescription>
+          </DialogHeader>
+          <InvitationForm
+            organizationId={organizationId}
+            roles={roles}
+            loadingRoles={loadingRoles}
+            onSuccess={() => {
+              setShowInviteDialog(false)
+              refresh()
+            }}
+            onCancel={() => setShowInviteDialog(false)}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   )
 }
-
