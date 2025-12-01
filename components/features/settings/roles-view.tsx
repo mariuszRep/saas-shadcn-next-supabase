@@ -367,14 +367,16 @@ export function RolesView({ organizationId, onAddRole, onBulkDelete }: RolesView
             <AlertDialogTitle>Delete {selectedRows.length} Role(s)?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently delete the following roles:
-              <ul className="mt-2 list-disc list-inside">
-                {selectedRows.slice(0, 5).map((role) => (
-                  <li key={role.id}><strong>{role.name}</strong></li>
-                ))}
-                {selectedRows.length > 5 && (
-                  <li>...and {selectedRows.length - 5} more</li>
-                )}
-              </ul>
+            </AlertDialogDescription>
+            <ul className="mt-2 list-disc list-inside">
+              {selectedRows.slice(0, 5).map((role) => (
+                <li key={role.id}><strong>{role.name}</strong></li>
+              ))}
+              {selectedRows.length > 5 && (
+                <li>...and {selectedRows.length - 5} more</li>
+              )}
+            </ul>
+            <AlertDialogDescription>
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>

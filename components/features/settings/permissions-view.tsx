@@ -388,16 +388,18 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
             <AlertDialogTitle>Revoke {selectedRows.length} Permission(s)?</AlertDialogTitle>
             <AlertDialogDescription>
               This will revoke permissions for the following users:
-              <ul className="mt-2 list-disc list-inside">
-                {selectedRows.slice(0, 5).map((permission) => (
-                  <li key={permission.id}>
-                    <strong>{permission.user_name || permission.user_email}</strong> - {permission.role?.name}
-                  </li>
-                ))}
-                {selectedRows.length > 5 && (
-                  <li>...and {selectedRows.length - 5} more</li>
-                )}
-              </ul>
+            </AlertDialogDescription>
+            <ul className="mt-2 list-disc list-inside">
+              {selectedRows.slice(0, 5).map((permission) => (
+                <li key={permission.id}>
+                  <strong>{permission.user_name || permission.user_email}</strong> - {permission.role?.name}
+                </li>
+              ))}
+              {selectedRows.length > 5 && (
+                <li>...and {selectedRows.length - 5} more</li>
+              )}
+            </ul>
+            <AlertDialogDescription>
               This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -415,3 +417,4 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
     </>
   )
 }
+
