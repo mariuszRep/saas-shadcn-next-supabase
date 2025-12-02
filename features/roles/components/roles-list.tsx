@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useMemo } from 'react'
 import { Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/composed/data-table'
@@ -32,10 +32,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { getAllRoles, deleteRole } from '@/features/roles/role-actions'
-import { RoleForm } from '@/features/settings/components/role-form'
-import { toast } from 'sonner'
+import { useRoles } from '../use-roles'
+import { RoleForm } from './role-form'
 import type { Role, PermissionAction } from '@/lib/types/database'
+import { useState } from 'react'
 
 function getActionBadgeVariant(action: PermissionAction) {
   switch (action) {
@@ -54,105 +54,57 @@ function getActionBadgeVariant(action: PermissionAction) {
   }
 }
 
-interface RolesViewProps {
+interface RolesListProps {
   organizationId: string
-  onAddRole?: () => void
-  onBulkDelete?: (roles: Role[]) => void
 }
 
-export function RolesView({ organizationId, onAddRole, onBulkDelete }: RolesViewProps) {
-  const [roles, setRoles] = useState<Role[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedRows, setSelectedRows] = useState<Role[]>([])
+export function RolesList({ organizationId }: RolesListProps) {
+  // Use the roles hook for data fetching and dialog state
+  const {
+    roles,
+    loading,
+    deleteRole,
+    addRoleOpen,
+    editRoleOpen,
+    selectedRole,
+    openAddRoleDialog,
+    openEditRoleDialog,
+    closeRoleDialog,
+  } = useRoles({ organizationId })
 
-  // Dialog states
-  const [addRoleOpen, setAddRoleOpen] = useState(false)
-  const [editRoleOpen, setEditRoleOpen] = useState(false)
+  // Local state for delete dialogs and row selection
   const [deleteRoleDialogOpen, setDeleteRoleDialogOpen] = useState(false)
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false)
-  const [selectedRole, setSelectedRole] = useState<Role | null>(null)
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
-
-  // Track if we've loaded data to prevent duplicate fetches
-  const loadedRef = useRef(false)
-  const currentOrgIdRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    // Only load if we haven't loaded yet or if the org ID changed
-    if (!loadedRef.current || currentOrgIdRef.current !== organizationId) {
-      currentOrgIdRef.current = organizationId
-      loadedRef.current = true
-      loadRoles()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  async function loadRoles() {
-    setLoading(true)
-    try {
-      const result = await getAllRoles()
-      if (result.success && result.roles) {
-        setRoles(result.roles)
-      } else {
-        toast.error(result.error || 'Failed to load roles')
-      }
-    } catch (error) {
-      console.error('Error loading roles:', error)
-      toast.error('Failed to load roles')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [selectedRows, setSelectedRows] = useState<Role[]>([])
 
   async function handleDeleteRole() {
     if (!roleToDelete) return
 
-    try {
-      const result = await deleteRole(roleToDelete.id)
-      if (result.success) {
-        toast.success('Role deleted successfully')
-        setDeleteRoleDialogOpen(false)
-        setRoleToDelete(null)
-        loadRoles()
-      } else {
-        toast.error(result.error || 'Failed to delete role')
-      }
-    } catch (error) {
-      console.error('Error deleting role:', error)
-      toast.error('An unexpected error occurred')
+    const result = await deleteRole(roleToDelete.id)
+    if (result.success) {
+      setDeleteRoleDialogOpen(false)
+      setRoleToDelete(null)
     }
   }
 
   async function handleBulkDelete() {
     if (selectedRows.length === 0) return
 
-    try {
-      let successCount = 0
-      let failCount = 0
+    let successCount = 0
+    let failCount = 0
 
-      for (const role of selectedRows) {
-        const result = await deleteRole(role.id)
-        if (result.success) {
-          successCount++
-        } else {
-          failCount++
-        }
+    for (const role of selectedRows) {
+      const result = await deleteRole(role.id)
+      if (result.success) {
+        successCount++
+      } else {
+        failCount++
       }
-
-      if (successCount > 0) {
-        toast.success(`Deleted ${successCount} role(s)`)
-      }
-      if (failCount > 0) {
-        toast.error(`Failed to delete ${failCount} role(s)`)
-      }
-
-      setBulkDeleteDialogOpen(false)
-      setSelectedRows([])
-      loadRoles()
-    } catch (error) {
-      console.error('Error deleting roles:', error)
-      toast.error('An unexpected error occurred')
     }
+
+    setBulkDeleteDialogOpen(false)
+    setSelectedRows([])
   }
 
   const columns: ColumnDef<Role>[] = useMemo(() => [
@@ -185,9 +137,9 @@ export function RolesView({ organizationId, onAddRole, onBulkDelete }: RolesView
         const role = row.original
         return (
           <div className="flex flex-col">
-            <span className="text-sm font-medium">{role.name}</span>
+            <span className="text-sm font-medium capitalize">{role.name}</span>
             {role.description && (
-              <span className="text-xs text-muted-foreground">{role.description}</span>
+              <span className="text-xs text-muted-foreground line-clamp-2">{role.description}</span>
             )}
           </div>
         )
@@ -226,6 +178,9 @@ export function RolesView({ organizationId, onAddRole, onBulkDelete }: RolesView
       id: 'actions',
       cell: ({ row }) => {
         const role = row.original
+        // Don't allow editing system roles
+        if (!role.org_id) return null
+
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -242,10 +197,7 @@ export function RolesView({ organizationId, onAddRole, onBulkDelete }: RolesView
                 Copy role ID
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => {
-                setSelectedRole(role)
-                setEditRoleOpen(true)
-              }}>
+              <DropdownMenuItem onClick={() => openEditRoleDialog(role)}>
                 <Pencil className="mr-2 h-4 w-4" />
                 Edit role
               </DropdownMenuItem>
@@ -264,20 +216,14 @@ export function RolesView({ organizationId, onAddRole, onBulkDelete }: RolesView
         )
       },
     },
-  ], [])
+  ], [openEditRoleDialog])
 
   // Bulk action button to render in toolbar
   const bulkActionButton = selectedRows.length > 0 ? (
     <Button
       variant="destructive"
       size="sm"
-      onClick={() => {
-        if (onBulkDelete) {
-          onBulkDelete(selectedRows)
-        } else {
-          setBulkDeleteDialogOpen(true)
-        }
-      }}
+      onClick={() => setBulkDeleteDialogOpen(true)}
     >
       <Trash2 className="mr-2 h-4 w-4" />
       Delete ({selectedRows.length})
@@ -296,13 +242,7 @@ export function RolesView({ organizationId, onAddRole, onBulkDelete }: RolesView
         action={
           <Button
             size="sm"
-            onClick={() => {
-              if (onAddRole) {
-                onAddRole()
-              } else {
-                setAddRoleOpen(true)
-              }
-            }}
+            onClick={openAddRoleDialog}
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Role
@@ -317,9 +257,7 @@ export function RolesView({ organizationId, onAddRole, onBulkDelete }: RolesView
       {/* Add/Edit Role Dialog */}
       <Dialog open={addRoleOpen || editRoleOpen} onOpenChange={(open) => {
         if (!open) {
-          setAddRoleOpen(false)
-          setEditRoleOpen(false)
-          setSelectedRole(null)
+          closeRoleDialog()
         }
       }}>
         <DialogContent className="max-w-2xl">
@@ -332,17 +270,8 @@ export function RolesView({ organizationId, onAddRole, onBulkDelete }: RolesView
           <RoleForm
             orgId={organizationId}
             initialData={selectedRole}
-            onSuccess={() => {
-              setAddRoleOpen(false)
-              setEditRoleOpen(false)
-              setSelectedRole(null)
-              loadRoles()
-            }}
-            onCancel={() => {
-              setAddRoleOpen(false)
-              setEditRoleOpen(false)
-              setSelectedRole(null)
-            }}
+            onSuccess={closeRoleDialog}
+            onCancel={closeRoleDialog}
           />
         </DialogContent>
       </Dialog>

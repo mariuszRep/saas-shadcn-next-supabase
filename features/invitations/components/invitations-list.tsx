@@ -46,7 +46,7 @@ import { revokeInvitation, bulkRevokeInvitations } from '../invitation-actions'
 import { DataTable } from '@/components/composed/data-table'
 import { useInvitations } from '../use-invitations'
 import { InvitationForm } from './invitation-form'
-import { getAllRoles } from '@/lib/actions/role.actions'
+import { getAllRoles } from '@/features/roles/role-actions'
 
 interface Invitation {
   id: string

@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { DialogFooter } from '@/components/ui/dialog'
 import { toast } from 'sonner'
-import { createRole, updateRole } from '@/lib/actions/role.actions'
-import { roleFormSchema, updateRoleSchema } from '@/lib/schemas'
+import { createRole, updateRole } from '@/features/roles/role-actions'
+import { roleFormSchema, updateRoleSchema } from '@/features/roles/validations'
 import type { Role, PermissionAction } from '@/lib/types/database'
 
 interface RoleFormProps {

@@ -10,7 +10,7 @@ import {
   assignRole as assignRoleAction,
   revokeRole as revokeRoleAction,
 } from './permission-actions'
-import { getAllRoles } from '@/lib/actions/role.actions'
+import { getAllRoles } from '@/features/roles/role-actions'
 import type { Role, Permission } from '@/lib/types/database'
 import type { PermissionWithDetails, OrgMember, AssignRoleParams } from './types'
 

@@ -7,7 +7,7 @@ import { SidebarLayout } from '@/components/layout/sidebar-layout'
 import { SettingsSidebar, type SettingsSection, type AccessSubsection } from '@/features/settings/components/settings-sidebar'
 import { WorkspaceManager } from '@/features/workspaces/components/workspace-manager'
 import { PermissionsList } from '@/features/permissions/components/permissions-list'
-import { RolesView } from '@/features/settings/components/roles-view'
+import { RolesList } from '@/features/roles/components/roles-list'
 import { InvitationsList } from '@/features/invitations/components/invitations-list'
 import { getUserOrganizations } from '@/lib/actions/organization-actions'
 import type { Organization } from '@/lib/types/database'
@@ -187,7 +187,7 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
       case 'permissions':
         return <PermissionsList organizationId={selectedOrgId} />
       case 'roles':
-        return <RolesView organizationId={selectedOrgId} />
+        return <RolesList organizationId={selectedOrgId} />
       case 'invitations':
         return <InvitationsList organizationId={selectedOrgId} />
       default:

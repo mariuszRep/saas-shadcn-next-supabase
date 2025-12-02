@@ -71,8 +71,8 @@ import { toast } from 'sonner'
 import {
   getAllRoles,
   deleteRole,
-} from '@/lib/actions/role.actions'
-import { RoleForm } from '@/features/settings/components/role-form'
+} from '@/features/roles/role-actions'
+import { RoleForm } from '@/features/roles/components/role-form'
 import type { PermissionAction, Role } from '@/lib/types/database'
 import { PermissionsList } from '@/features/permissions/components/permissions-list'
 import { InvitationsList } from '@/features/invitations/components/invitations-list'
