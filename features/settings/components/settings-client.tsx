@@ -37,46 +37,57 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
 
   // Track if we're currently updating to prevent loops
   const isUpdatingRef = React.useRef(false)
+  const prevUrlOrgIdRef = React.useRef<string | undefined>(undefined)
+  const prevSearchParamsRef = React.useRef<URLSearchParams | null>(null)
 
   const selectedOrg = organizations.find(org => org.id === selectedOrgId)
 
   // Check if we're on an organization-specific settings page
   const isOrgSpecificPage = pathname.includes('/organization/')
 
-  // Sync URL params with state on mount and when URL changes
+  // Single effect to sync all URL params and props with state
   React.useEffect(() => {
+    // Skip if we're in the middle of a programmatic update
     if (isUpdatingRef.current) {
       isUpdatingRef.current = false
       return
     }
 
-    const sectionParam = searchParams?.get('section') as SettingsSection | null
-    const subsectionParam = searchParams?.get('subsection') as AccessSubsection | null
+    // Check if URL params actually changed
+    const searchParamsString = searchParams?.toString()
+    const prevSearchParamsString = prevSearchParamsRef.current?.toString()
+    const urlChanged = searchParamsString !== prevSearchParamsString
+    const orgIdChanged = urlOrgId !== prevUrlOrgIdRef.current
 
-    if (sectionParam && (sectionParam === 'access' || sectionParam === 'workspaces')) {
-      setActiveSection(prev => prev !== sectionParam ? sectionParam : prev)
+    // Update refs
+    prevUrlOrgIdRef.current = urlOrgId
+    prevSearchParamsRef.current = searchParams
+
+    // Sync organizations from props
+    if (JSON.stringify(organizations) !== JSON.stringify(initialOrganizations)) {
+      setOrganizations(initialOrganizations)
     }
 
-    if (subsectionParam && (subsectionParam === 'permissions' || subsectionParam === 'roles' || subsectionParam === 'invitations')) {
-      setActiveSubsection(prev => prev !== subsectionParam ? subsectionParam : prev)
+    // Sync selected org ID from URL or props (only if URL changed)
+    if (orgIdChanged) {
+      const targetOrgId = urlOrgId || (initialOrganizations.length > 0 ? initialOrganizations[0].id : null)
+      setSelectedOrgId(targetOrgId)
     }
-  }, [searchParams])
 
-  React.useEffect(() => {
-    if (urlOrgId) {
-      setSelectedOrgId(urlOrgId)
-    }
-  }, [urlOrgId])
+    // Sync URL params with state only when URL actually changes
+    if (urlChanged) {
+      const sectionParam = searchParams?.get('section') as SettingsSection | null
+      const subsectionParam = searchParams?.get('subsection') as AccessSubsection | null
 
-  React.useEffect(() => {
-    setOrganizations(initialOrganizations)
-    setSelectedOrgId((prev) => {
-      if (prev && initialOrganizations.some((org) => org.id === prev)) {
-        return prev
+      if (sectionParam && (sectionParam === 'access' || sectionParam === 'workspaces')) {
+        setActiveSection(sectionParam)
       }
-      return initialOrganizations[0]?.id ?? null
-    })
-  }, [initialOrganizations])
+
+      if (subsectionParam && (subsectionParam === 'permissions' || subsectionParam === 'roles' || subsectionParam === 'invitations')) {
+        setActiveSubsection(subsectionParam)
+      }
+    }
+  }, [urlOrgId, initialOrganizations, searchParams])
 
   const handleOrganizationsChange = async () => {
     const result = await getUserOrganizations()
@@ -163,7 +174,7 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
     )
   }
 
-  const renderAccessContent = () => {
+  const accessContent = React.useMemo(() => {
     if (!selectedOrgId) {
       return renderEmptyState(
         'Select an organization to manage access',
@@ -182,7 +193,23 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
       default:
         return null
     }
-  }
+  }, [selectedOrgId, activeSubsection])
+
+  const workspaceContent = React.useMemo(() => {
+    if (selectedOrgId && selectedOrg) {
+      return (
+        <WorkspaceManager
+          organizationId={selectedOrgId}
+          organizationName={selectedOrg.name}
+        />
+      )
+    }
+    return renderEmptyState(
+      'Select an organization to manage workspaces',
+      'Choose an organization from the sidebar to create, edit, or remove workspaces.',
+      'workspaces'
+    )
+  }, [selectedOrgId, selectedOrg])
 
   return (
     <SidebarLayout
@@ -210,20 +237,9 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
     >
       <div className="flex flex-1 flex-col gap-6 p-4 pt-0">
         {activeSection === 'workspaces' ? (
-          selectedOrgId && selectedOrg ? (
-            <WorkspaceManager
-              organizationId={selectedOrgId}
-              organizationName={selectedOrg.name}
-            />
-          ) : (
-            renderEmptyState(
-              'Select an organization to manage workspaces',
-              'Choose an organization from the sidebar to create, edit, or remove workspaces.',
-              'workspaces'
-            )
-          )
+          workspaceContent
         ) : activeSection === 'access' ? (
-          renderAccessContent()
+          accessContent
         ) : null}
       </div>
     </SidebarLayout>

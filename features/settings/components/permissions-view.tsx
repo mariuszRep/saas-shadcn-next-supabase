@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Plus, MoreHorizontal, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/composed/data-table'
@@ -84,11 +84,20 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
   const [roles, setRoles] = useState<Role[]>([])
   const [members, setMembers] = useState<Array<{ user_id: string; name?: string; email?: string }>>([])
 
+  // Track if we've loaded data to prevent duplicate fetches
+  const loadedRef = useRef(false)
+  const currentOrgIdRef = useRef<string | null>(null)
+
   useEffect(() => {
-    loadPermissions()
-    loadFormData()
+    // Only load if we haven't loaded yet or if the org ID changed
+    if (!loadedRef.current || currentOrgIdRef.current !== organizationId) {
+      currentOrgIdRef.current = organizationId
+      loadedRef.current = true
+      loadPermissions()
+      loadFormData()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organizationId])
+  }, [])
 
   async function loadFormData() {
     try {

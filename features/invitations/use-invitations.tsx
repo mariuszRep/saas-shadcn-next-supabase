@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { getOrganizationInvitations, type InvitationWithDetails } from './invitation-actions'
 
@@ -14,10 +14,19 @@ export function useInvitations({ organizationId }: UseInvitationsProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  // Track if we've loaded data to prevent duplicate fetches
+  const loadedRef = useRef(false)
+  const currentOrgIdRef = useRef<string | null>(null)
+
   useEffect(() => {
-    loadInvitations()
+    // Only load if we haven't loaded yet or if the org ID changed
+    if (!loadedRef.current || currentOrgIdRef.current !== organizationId) {
+      currentOrgIdRef.current = organizationId
+      loadedRef.current = true
+      loadInvitations()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organizationId])
+  }, [])
 
   async function loadInvitations() {
     try {

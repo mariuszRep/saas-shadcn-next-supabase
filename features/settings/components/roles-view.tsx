@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { Plus, MoreHorizontal, Pencil, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/composed/data-table'
@@ -73,10 +73,19 @@ export function RolesView({ organizationId, onAddRole, onBulkDelete }: RolesView
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
 
+  // Track if we've loaded data to prevent duplicate fetches
+  const loadedRef = useRef(false)
+  const currentOrgIdRef = useRef<string | null>(null)
+
   useEffect(() => {
-    loadRoles()
+    // Only load if we haven't loaded yet or if the org ID changed
+    if (!loadedRef.current || currentOrgIdRef.current !== organizationId) {
+      currentOrgIdRef.current = organizationId
+      loadedRef.current = true
+      loadRoles()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [organizationId])
+  }, [])
 
   async function loadRoles() {
     setLoading(true)
