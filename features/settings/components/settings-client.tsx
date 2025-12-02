@@ -6,7 +6,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigat
 import { SidebarLayout } from '@/components/layout/sidebar-layout'
 import { SettingsSidebar, type SettingsSection, type AccessSubsection } from '@/features/settings/components/settings-sidebar'
 import { WorkspaceManager } from '@/features/workspaces/components/workspace-manager'
-import { PermissionsView } from '@/features/settings/components/permissions-view'
+import { PermissionsList } from '@/features/permissions/components/permissions-list'
 import { RolesView } from '@/features/settings/components/roles-view'
 import { InvitationsList } from '@/features/invitations/components/invitations-list'
 import { getUserOrganizations } from '@/lib/actions/organization-actions'
@@ -185,7 +185,7 @@ export function SettingsClient({ organizations: initialOrganizations, user }: Se
 
     switch (activeSubsection) {
       case 'permissions':
-        return <PermissionsView organizationId={selectedOrgId} />
+        return <PermissionsList organizationId={selectedOrgId} />
       case 'roles':
         return <RolesView organizationId={selectedOrgId} />
       case 'invitations':

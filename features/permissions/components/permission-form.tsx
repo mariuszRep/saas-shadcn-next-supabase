@@ -14,8 +14,8 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { assignRole, getOrganizationWorkspaces } from '@/lib/actions/permission.actions'
-import { addPermissionSchema } from '@/lib/schemas'
+import { assignRole, getOrganizationWorkspaces } from '@/features/permissions/permission-actions'
+import { addPermissionSchema } from '@/features/permissions/validations'
 import type { ObjectType, Role } from '@/lib/types/database'
 
 interface PermissionFormProps {

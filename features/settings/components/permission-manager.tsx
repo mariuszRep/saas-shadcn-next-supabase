@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
+import { useState } from 'react'
+import * as React from 'react'
+import { toast } from 'sonner'
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -72,21 +72,9 @@ import {
   getAllRoles,
   deleteRole,
 } from '@/lib/actions/role.actions'
-import {
-  assignRole,
-  revokeRole,
-  getAllOrgPermissions,
-  getOrgMembers,
-  getUserOrganizations,
-  getOrganizationWorkspaces,
-} from '@/lib/actions/permission.actions'
-import {
-  addPermissionSchema,
-} from '@/lib/schemas'
 import { RoleForm } from '@/features/settings/components/role-form'
-import { usePermissionStore } from '@/lib/stores/permission-store'
-import type { PermissionAction, ObjectType, Role } from '@/lib/types/database'
-import { PermissionsView } from '@/features/settings/components/permissions-view'
+import type { PermissionAction, Role } from '@/lib/types/database'
+import { PermissionsList } from '@/features/permissions/components/permissions-list'
 import { InvitationsList } from '@/features/invitations/components/invitations-list'
 
 interface PermissionManagerProps {
@@ -95,129 +83,45 @@ interface PermissionManagerProps {
   hideTabs?: boolean
 }
 
-interface PermissionWithDetails {
-  id: string
-  principal_type: string
-  principal_id: string
-  role_id: string
-  object_type: ObjectType
-  object_id: string | null
-  role?: Role
-  user_email?: string
-  user_name?: string
-}
-
-interface OrgMember {
-  org_id: string
-  user_id: string
-  role_id: string
-  role_name: string
-  email?: string
-  name?: string
-}
-
 export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs = false }: PermissionManagerProps) {
-  const [permissions, setPermissions] = useState<PermissionWithDetails[]>([])
-  const [members, setMembers] = useState<OrgMember[]>([])
-  const [roles, setRoles] = useState<Role[]>([])
-  const [organizations, setOrganizations] = useState<Array<{ id: string; name: string }>>([])
-  const [workspaces, setWorkspaces] = useState<Array<{ id: string; name: string }>>([])
-  const [loading, setLoading] = useState(true)
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  // Local state for dialogs
+  const [addRoleOpen, setAddRoleOpen] = useState(false)
+  const [editRoleOpen, setEditRoleOpen] = useState(false)
+  const [selectedRole, setSelectedRole] = useState<Role | null>(null)
   const [deleteRoleDialogOpen, setDeleteRoleDialogOpen] = useState(false)
-  const [permissionToDelete, setPermissionToDelete] = useState<PermissionWithDetails | null>(null)
   const [roleToDelete, setRoleToDelete] = useState<Role | null>(null)
   const [activeTab, setActiveTab] = useState(defaultTab)
 
-  // Zustand store for dialog state
-  const {
-    addPermissionOpen,
-    addRoleOpen,
-    editRoleOpen,
-    selectedRole,
-    setAddPermissionOpen,
-    setAddRoleOpen,
-    setEditRoleOpen,
-    setSelectedRole,
-  } = usePermissionStore()
-
-
-
-
-
-  // Table state
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
-  const [rowSelection, setRowSelection] = useState({})
+  // State for roles tab only
+  const [roles, setRoles] = useState<Role[]>([])
+  const [loading, setLoading] = useState(false)
 
   // Role table state
   const [roleSorting, setRoleSorting] = useState<SortingState>([])
   const [roleFilters, setRoleFilters] = useState<ColumnFiltersState>([])
   const [roleRowSelection, setRoleRowSelection] = useState({})
 
-  // Deduplicate members by user_id for the user selection dropdown
-  const uniqueMembers = members.reduce((acc, member) => {
-    if (!acc.find(m => m.user_id === member.user_id)) {
-      acc.push(member)
+  // Load roles when switching to roles tab
+  React.useEffect(() => {
+    if (activeTab === 'roles' && roles.length === 0) {
+      loadRoles()
     }
-    return acc
-  }, [] as OrgMember[])
+  }, [activeTab, roles.length])
 
-  useEffect(() => {
-    loadData()
-  }, [orgId])
-
-
-
-  async function loadData() {
+  async function loadRoles() {
     setLoading(true)
     try {
-      // Load organization members with email/name
-      const membersResult = await getOrgMembers(orgId)
-      if (membersResult.success && membersResult.members) {
-        setMembers(membersResult.members)
-      }
-
-      // Load all available roles
       const rolesResult = await getAllRoles()
       if (rolesResult.success && rolesResult.roles) {
         setRoles(rolesResult.roles)
       }
-
-      // Load organizations user has access to
-      const orgsResult = await getUserOrganizations()
-      if (orgsResult.success && orgsResult.organizations) {
-        setOrganizations(orgsResult.organizations)
-      }
-
-      // Load ALL permissions for this organization (all object types)
-      const permsResult = await getAllOrgPermissions(orgId)
-      if (permsResult.success && permsResult.permissions) {
-        setPermissions(permsResult.permissions as PermissionWithDetails[])
-      }
     } catch (error) {
-      console.error('Error loading data:', error)
-      toast.error('Failed to load permissions')
+      console.error('Error loading roles:', error)
+      toast.error('Failed to load roles')
     } finally {
       setLoading(false)
     }
   }
-
-  async function loadWorkspaces() {
-    try {
-      const result = await getOrganizationWorkspaces(orgId)
-      if (result.success && result.workspaces) {
-        setWorkspaces(result.workspaces)
-      }
-    } catch (error) {
-      console.error('Error loading workspaces:', error)
-    }
-  }
-
-
-
-
 
   async function handleDeleteRole() {
     if (!roleToDelete) return
@@ -228,7 +132,7 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
         toast.success('Role deleted successfully')
         setDeleteRoleDialogOpen(false)
         setRoleToDelete(null)
-        loadData()
+        loadRoles()
       } else {
         toast.error(result.error || 'Failed to delete role')
       }
@@ -247,182 +151,6 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
       default: return 'default'
     }
   }
-
-  const getInitials = (email?: string, name?: string) => {
-    if (name) {
-      return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    }
-    if (email) {
-      return email.slice(0, 2).toUpperCase()
-    }
-    return '??'
-  }
-
-  // Get object display name
-  const getObjectDisplayName = (objectType: ObjectType, objectId: string | null) => {
-    if (objectId === null) {
-      return `All ${objectType}s`
-    }
-
-    if (objectType === 'organization') {
-      const org = organizations.find(o => o.id === objectId)
-      return org?.name || objectId
-    }
-
-    if (objectType === 'workspace') {
-      const ws = workspaces.find(w => w.id === objectId)
-      return ws?.name || objectId
-    }
-
-    return objectId
-  }
-
-  // Define permissions columns
-  const permissionsColumns: ColumnDef<PermissionWithDetails>[] = [
-    {
-      id: 'select',
-      header: ({ table }) => (
-        <Checkbox
-          checked={
-            table.getIsAllPageRowsSelected() ||
-            (table.getIsSomePageRowsSelected() && 'indeterminate')
-          }
-          onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-          aria-label="Select all"
-        />
-      ),
-      cell: ({ row }) => (
-        <Checkbox
-          checked={row.getIsSelected()}
-          onCheckedChange={(value) => row.toggleSelected(!!value)}
-          aria-label="Select row"
-        />
-      ),
-      enableSorting: false,
-      enableHiding: false,
-    },
-    {
-      accessorKey: 'user_email',
-      header: 'User',
-      cell: ({ row }) => {
-        const permission = row.original
-        return (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-8 w-8">
-              <AvatarFallback className="bg-primary/10 text-primary text-xs">
-                {getInitials(permission.user_email, permission.user_name)}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">
-                {permission.user_name || permission.user_email}
-              </span>
-              {permission.user_name && permission.user_email && (
-                <span className="text-xs text-muted-foreground">{permission.user_email}</span>
-              )}
-            </div>
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'role.name',
-      header: 'Role',
-      cell: ({ row }) => {
-        const permission = row.original
-        return (
-          <div className="flex flex-col">
-            <span className="text-sm font-medium">{permission.role?.name}</span>
-            {permission.role?.description && (
-              <span className="text-xs text-muted-foreground">{permission.role.description}</span>
-            )}
-          </div>
-        )
-      },
-    },
-    {
-      id: 'actions',
-      header: 'Permissions',
-      cell: ({ row }) => {
-        const permission = row.original
-        return (
-          <div className="flex flex-wrap gap-1">
-            {(permission.role?.permissions as PermissionAction[])?.map((action) => (
-              <Badge key={action} variant={getActionBadgeVariant(action)} className="text-xs">
-                {action}
-              </Badge>
-            ))}
-          </div>
-        )
-      },
-    },
-    {
-      accessorKey: 'object_type',
-      header: 'Object Type',
-      cell: ({ row }) => {
-        const permission = row.original
-        return (
-          <div className="flex items-center gap-2">
-            {permission.object_type === 'organization' ? (
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-            ) : (
-              <FolderKanban className="h-4 w-4 text-muted-foreground" />
-            )}
-            <span className="text-sm capitalize">{permission.object_type}</span>
-          </div>
-        )
-      },
-    },
-    {
-      id: 'object',
-      header: 'Object',
-      cell: ({ row }) => {
-        const permission = row.original
-        return (
-          <span className="text-sm">
-            {getObjectDisplayName(permission.object_type, permission.object_id)}
-          </span>
-        )
-      },
-    },
-    {
-      id: 'row_actions',
-      enableHiding: false,
-      cell: ({ row }) => {
-        const permission = row.original
-
-        return (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
-                <span className="sr-only">Open menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem
-                onClick={() => navigator.clipboard.writeText(permission.id)}
-              >
-                Copy permission ID
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                onClick={() => {
-                  setPermissionToDelete(permission)
-                  setDeleteDialogOpen(true)
-                }}
-                className="text-destructive"
-              >
-                <Trash2 className="mr-2 h-4 w-4" />
-                Revoke permission
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )
-      },
-    },
-  ]
 
   // Define roles columns
   const rolesColumns: ColumnDef<Role>[] = [
@@ -536,25 +264,6 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
     },
   ]
 
-  const table = useReactTable({
-    data: permissions,
-    columns: permissionsColumns,
-    onSortingChange: setSorting,
-    onColumnFiltersChange: setColumnFilters,
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    onColumnVisibilityChange: setColumnVisibility,
-    onRowSelectionChange: setRowSelection,
-    state: {
-      sorting,
-      columnFilters,
-      columnVisibility,
-      rowSelection,
-    },
-  })
-
   const roleTable = useReactTable({
     data: roles,
     columns: rolesColumns,
@@ -596,7 +305,7 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
       {/* Render only the active tab content */}
       {activeTab === 'permissions' && (
         <div className="space-y-4">
-          <PermissionsView organizationId={orgId} />
+          <PermissionsList organizationId={orgId} />
         </div>
       )}
 
@@ -741,7 +450,7 @@ export function PermissionManager({ orgId, defaultTab = 'permissions', hideTabs 
               setAddRoleOpen(false)
               setEditRoleOpen(false)
               setSelectedRole(null)
-              loadData()
+              loadRoles()
             }}
             onCancel={() => {
               setAddRoleOpen(false)

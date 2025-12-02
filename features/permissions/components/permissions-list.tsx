@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus, MoreHorizontal, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { DataTable } from '@/components/composed/data-table'
@@ -16,11 +16,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { getAllOrgPermissions, revokeRole, getOrgMembers } from '@/lib/actions/permission.actions'
-import { getAllRoles } from '@/lib/actions/role.actions'
 import { toast } from 'sonner'
 import type { Role } from '@/lib/types/database'
-import { PermissionForm } from '@/features/settings/components/permission-form'
+import type { PermissionWithDetails } from '../types'
+import { usePermissions } from '../use-permissions'
+import { PermissionForm } from './permission-form'
 import {
   Dialog,
   DialogContent,
@@ -39,20 +39,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
 
-type ObjectType = 'organization' | 'workspace'
-
-type PermissionWithDetails = {
-  id: string
-  principal_type: string
-  principal_id: string
-  role_id: string
-  object_type: ObjectType
-  object_id: string | null
-  role?: Role
-  user_email?: string
-  user_name?: string
-}
-
 function getInitials(email?: string, name?: string) {
   if (name) {
     const parts = name.split(' ')
@@ -63,88 +49,30 @@ function getInitials(email?: string, name?: string) {
   return email ? email.slice(0, 2).toUpperCase() : '??'
 }
 
-interface PermissionsViewProps {
+interface PermissionsListProps {
   organizationId: string
-  onAddPermission?: () => void
-  onBulkRevoke?: (permissions: PermissionWithDetails[]) => void
 }
 
-export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke }: PermissionsViewProps) {
-  const [permissions, setPermissions] = useState<PermissionWithDetails[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedRows, setSelectedRows] = useState<PermissionWithDetails[]>([])
+export function PermissionsList({ organizationId }: PermissionsListProps) {
+  // Use the permissions hook for data fetching
+  const { permissions, members, roles, loading, revokePermission, refresh } = usePermissions({ organizationId })
 
   // Dialog states
   const [addPermissionOpen, setAddPermissionOpen] = useState(false)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [bulkRevokeDialogOpen, setBulkRevokeDialogOpen] = useState(false)
   const [permissionToDelete, setPermissionToDelete] = useState<PermissionWithDetails | null>(null)
-
-  // Data for form
-  const [roles, setRoles] = useState<Role[]>([])
-  const [members, setMembers] = useState<Array<{ user_id: string; name?: string; email?: string }>>([])
-
-  // Track if we've loaded data to prevent duplicate fetches
-  const loadedRef = useRef(false)
-  const currentOrgIdRef = useRef<string | null>(null)
-
-  useEffect(() => {
-    // Only load if we haven't loaded yet or if the org ID changed
-    if (!loadedRef.current || currentOrgIdRef.current !== organizationId) {
-      currentOrgIdRef.current = organizationId
-      loadedRef.current = true
-      loadPermissions()
-      loadFormData()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  async function loadFormData() {
-    try {
-      const [rolesResult, membersResult] = await Promise.all([
-        getAllRoles(),
-        getOrgMembers(organizationId)
-      ])
-
-      if (rolesResult.success && rolesResult.roles) {
-        setRoles(rolesResult.roles)
-      }
-
-      if (membersResult.success && membersResult.members) {
-        setMembers(membersResult.members)
-      }
-    } catch (error) {
-      console.error('Error loading form data:', error)
-    }
-  }
-
-  async function loadPermissions() {
-    setLoading(true)
-    try {
-      const result = await getAllOrgPermissions(organizationId)
-      if (result.success && result.permissions) {
-        setPermissions(result.permissions as PermissionWithDetails[])
-      } else {
-        toast.error(result.error || 'Failed to load permissions')
-      }
-    } catch (error) {
-      console.error('Error loading permissions:', error)
-      toast.error('Failed to load permissions')
-    } finally {
-      setLoading(false)
-    }
-  }
+  const [selectedRows, setSelectedRows] = useState<PermissionWithDetails[]>([])
 
   async function handleDeletePermission() {
     if (!permissionToDelete) return
 
     try {
-      const result = await revokeRole(permissionToDelete.id)
+      const result = await revokePermission(permissionToDelete.id)
       if (result.success) {
         toast.success('Permission revoked successfully')
         setDeleteDialogOpen(false)
         setPermissionToDelete(null)
-        loadPermissions()
       } else {
         toast.error(result.error || 'Failed to revoke permission')
       }
@@ -162,7 +90,7 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
       let failCount = 0
 
       for (const permission of selectedRows) {
-        const result = await revokeRole(permission.id)
+        const result = await revokePermission(permission.id)
         if (result.success) {
           successCount++
         } else {
@@ -179,7 +107,6 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
 
       setBulkRevokeDialogOpen(false)
       setSelectedRows([])
-      loadPermissions()
     } catch (error) {
       console.error('Error revoking permissions:', error)
       toast.error('An unexpected error occurred')
@@ -300,13 +227,7 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
     <Button
       variant="destructive"
       size="sm"
-      onClick={() => {
-        if (onBulkRevoke) {
-          onBulkRevoke(selectedRows)
-        } else {
-          setBulkRevokeDialogOpen(true)
-        }
-      }}
+      onClick={() => setBulkRevokeDialogOpen(true)}
     >
       <Trash2 className="mr-2 h-4 w-4" />
       Revoke ({selectedRows.length})
@@ -325,13 +246,7 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
         action={
           <Button
             size="sm"
-            onClick={() => {
-              if (onAddPermission) {
-                onAddPermission()
-              } else {
-                setAddPermissionOpen(true)
-              }
-            }}
+            onClick={() => setAddPermissionOpen(true)}
           >
             <Plus className="mr-2 h-4 w-4" />
             Add Permission
@@ -358,7 +273,6 @@ export function PermissionsView({ organizationId, onAddPermission, onBulkRevoke 
             members={members}
             onSuccess={() => {
               setAddPermissionOpen(false)
-              loadPermissions()
             }}
             onCancel={() => setAddPermissionOpen(false)}
           />
