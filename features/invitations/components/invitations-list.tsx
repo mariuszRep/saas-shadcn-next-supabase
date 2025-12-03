@@ -44,7 +44,7 @@ import {
 } from 'lucide-react'
 import { revokeInvitation, bulkRevokeInvitations } from '../invitation-actions'
 import { DataTable } from '@/components/composed/data-table'
-import { useInvitations } from '../use-invitations'
+import { useInvitations } from '@/hooks/use-invitations'
 import { InvitationForm } from './invitation-form'
 import { getAllRoles } from '@/features/roles/role-actions'
 

@@ -1,12 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
-import type { AuthResult, OAuthProvider } from './types'
+import type { AuthResult, OAuthProvider } from '@/features/auth/types'
 import {
   signInSchema,
   signUpSchema,
   magicLinkSchema,
   passwordResetRequestSchema,
   passwordUpdateSchema,
-} from './validations'
+} from '@/features/auth/validations'
 
 /**
  * Auth Service - Business logic layer for authentication

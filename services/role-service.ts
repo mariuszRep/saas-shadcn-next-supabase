@@ -1,6 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import type { Role, CreateRoleInput, UpdateRoleInput } from './types'
+import type { Role, CreateRoleInput, UpdateRoleInput } from '@/features/roles/types'
 
 /**
  * RoleService - Encapsulates all role-related database operations

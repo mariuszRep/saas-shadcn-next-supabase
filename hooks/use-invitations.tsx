@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { getOrganizationInvitations, type InvitationWithDetails } from './invitation-actions'
+import { getOrganizationInvitations, type InvitationWithDetails } from '@/features/invitations/invitation-actions'
 
 interface UseInvitationsProps {
   organizationId: string

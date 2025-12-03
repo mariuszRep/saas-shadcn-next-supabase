@@ -32,7 +32,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { useRoles } from '../use-roles'
+import { useRoles } from '@/hooks/use-roles'
 import { RoleForm } from './role-form'
 import type { Role, PermissionAction } from '@/types/database'
 import { useState } from 'react'

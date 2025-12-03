@@ -7,7 +7,7 @@ import { CircleCheckIcon, CircleHelpIcon, CircleIcon, LayoutDashboard, LogOut } 
 import { ThemeToggle } from '@/components/composed/theme-toggle'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { useAuth } from '@/features/auth/use-auth'
+import { useAuth } from '@/hooks/use-auth'
 import { createClient } from '@/lib/supabase/client'
 import {
   NavigationMenu,

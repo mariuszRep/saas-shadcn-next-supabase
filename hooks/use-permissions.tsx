@@ -9,10 +9,10 @@ import {
   getOrganizationWorkspaces,
   assignRole as assignRoleAction,
   revokeRole as revokeRoleAction,
-} from './permission-actions'
+} from '@/features/permissions/permission-actions'
 import { getAllRoles } from '@/features/roles/role-actions'
 import type { Role, Permission } from '@/types/database'
-import type { PermissionWithDetails, OrgMember, AssignRoleParams } from './types'
+import type { PermissionWithDetails, OrgMember, AssignRoleParams } from '@/features/permissions/types'
 
 interface UsePermissionsProps {
   organizationId: string

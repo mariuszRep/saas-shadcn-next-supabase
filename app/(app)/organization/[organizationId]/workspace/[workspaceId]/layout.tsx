@@ -1,6 +1,6 @@
 import { notFound, redirect } from 'next/navigation'
 import { ReactNode } from 'react'
-import { OrganizationWorkspaceProvider } from '@/features/shared/use-workspace-context'
+import { OrganizationWorkspaceProvider } from '@/hooks/use-workspace-context'
 import { createClient } from '@/lib/supabase/server'
 import { getOrganization, getWorkspace } from '@/features/workspaces/workspace-actions'
 

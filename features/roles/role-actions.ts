@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { RoleService } from './role-service'
+import { RoleService } from '@/services/role-service'
 import type { CreateRoleInput, UpdateRoleInput, Role } from './types'
 
 // =====================================================

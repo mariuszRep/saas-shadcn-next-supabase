@@ -1,7 +1,7 @@
 'use client'
 
-import { useOrganizationWorkspaceRequired } from '@/features/shared/use-workspace-context'
-import { useAuth } from '@/features/auth/use-auth'
+import { useOrganizationWorkspaceRequired } from '@/hooks/use-workspace-context'
+import { useAuth } from '@/hooks/use-auth'
 
 export function useWorkspace() {
   const { user, loading: userLoading } = useAuth()

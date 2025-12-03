@@ -11,7 +11,7 @@ import {
   signInWithOAuthProvider,
   requestPasswordResetEmail,
   updateUserPassword,
-} from './auth-service'
+} from '@/services/auth-service'
 
 /**
  * Auth Actions - Next.js Server Actions

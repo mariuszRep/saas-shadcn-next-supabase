@@ -2,12 +2,12 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
-import { InvitationService } from './invitation-service'
+import { InvitationService } from '@/services/invitation-service'
 import type {
   SendInvitationParams,
   AssignWorkspacePermissionsParams,
   InvitedUserDetails,
-} from './invitation-service'
+} from '@/services/invitation-service'
 import { revalidatePath } from 'next/cache'
 
 /**
