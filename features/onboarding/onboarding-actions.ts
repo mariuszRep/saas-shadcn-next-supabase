@@ -1,12 +1,12 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { OnboardingService } from '@/lib/services/onboarding-service'
+import { OnboardingService } from '@/services/onboarding-service'
 import type {
   OrganizationWithPermission,
   WorkspaceWithPermission,
   OrganizationMembershipStatus,
-} from '@/lib/services/onboarding-service'
+} from '@/services/onboarding-service'
 import { revalidatePath } from 'next/cache'
 
 /**

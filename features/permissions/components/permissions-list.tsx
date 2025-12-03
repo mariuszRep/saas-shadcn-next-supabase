@@ -17,7 +17,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
-import type { Role } from '@/lib/types/database'
+import type { Role } from '@/types/database'
 import type { PermissionWithDetails } from '../types'
 import { usePermissions } from '../use-permissions'
 import { PermissionForm } from './permission-form'

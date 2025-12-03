@@ -9,8 +9,8 @@ import { WorkspaceManager } from '@/features/workspaces/components/workspace-man
 import { PermissionsList } from '@/features/permissions/components/permissions-list'
 import { RolesList } from '@/features/roles/components/roles-list'
 import { InvitationsList } from '@/features/invitations/components/invitations-list'
-import { getUserOrganizations } from '@/lib/actions/organization-actions'
-import type { Organization } from '@/lib/types/database'
+import { getUserOrganizations } from '@/features/organizations/organization-actions'
+import type { Organization } from '@/types/database'
 
 interface SettingsClientProps {
   organizations: Organization[]

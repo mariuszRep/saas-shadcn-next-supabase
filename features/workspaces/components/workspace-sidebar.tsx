@@ -25,8 +25,8 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 import { useWorkspace } from "@/hooks/use-workspace"
-import { getOrganizationWorkspaces } from "@/lib/actions/workspace"
-import type { Workspace } from "@/lib/types/database"
+import { getOrganizationWorkspaces } from "@/features/workspaces/workspace-actions"
+import type { Workspace } from "@/types/database"
 
 // This is sample data.
 const data = {

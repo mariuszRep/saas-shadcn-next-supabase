@@ -3,7 +3,7 @@ import type {
   ObjectType,
   PermissionAction,
   Permission,
-} from '@/lib/types/database'
+} from '@/types/database'
 
 /**
  * Permission with additional details including role and user information

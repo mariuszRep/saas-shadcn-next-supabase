@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, ReactNode, useContext } from 'react'
-import type { Organization, Workspace } from '@/lib/types/database'
+import type { Organization, Workspace } from '@/types/database'
 
 interface OrganizationWorkspaceContextValue {
   organization: Organization

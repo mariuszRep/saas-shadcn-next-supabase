@@ -1,4 +1,4 @@
-import type { PermissionAction, Role } from '@/lib/types/database'
+import type { PermissionAction, Role } from '@/types/database'
 
 /**
  * Input for creating a new role

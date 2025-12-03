@@ -4,7 +4,7 @@ import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { notFound } from 'next/navigation'
-import type { Organization, Workspace } from '@/lib/types/database'
+import type { Organization, Workspace } from '@/types/database'
 
 // =====================================================
 // CACHE FUNCTIONS FOR SERVER COMPONENTS

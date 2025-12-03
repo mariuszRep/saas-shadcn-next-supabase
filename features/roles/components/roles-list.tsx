@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { useRoles } from '../use-roles'
 import { RoleForm } from './role-form'
-import type { Role, PermissionAction } from '@/lib/types/database'
+import type { Role, PermissionAction } from '@/types/database'
 import { useState } from 'react'
 
 function getActionBadgeVariant(action: PermissionAction) {

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation'
 import { Suspense } from 'react'
 import { createClient } from '@/lib/supabase/server'
-import { getUserOrganizations } from '@/lib/actions/organization-actions'
+import { getUserOrganizations } from '@/features/organizations/organization-actions'
 import { SettingsClient } from '@/features/settings/components/settings-client'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AlertCircle } from 'lucide-react'

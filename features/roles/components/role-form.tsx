@@ -12,7 +12,7 @@ import { toast } from 'sonner'
 import { createRole, updateRole } from '../role-actions'
 import { roleFormSchema, updateRoleSchema } from '../validations'
 import type { Role } from '../types'
-import type { PermissionAction } from '@/lib/types/database'
+import type { PermissionAction } from '@/types/database'
 
 interface RoleFormProps {
   orgId: string

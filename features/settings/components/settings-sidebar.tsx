@@ -24,7 +24,7 @@ import {
   SidebarMenuSubItem,
   SidebarRail,
 } from '@/components/ui/sidebar'
-import type { Organization } from '@/lib/types/database'
+import type { Organization } from '@/types/database'
 
 export type SettingsSection = 'workspaces' | 'access'
 export type AccessSubsection = 'permissions' | 'roles' | 'invitations'

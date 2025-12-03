@@ -2,8 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import type { Organization } from '@/lib/types/database'
-import { getFirstWorkspaceForOrg } from '@/lib/actions/workspace'
+import type { Organization } from '@/types/database'
+import { getFirstWorkspaceForOrg } from '@/features/workspaces/workspace-actions'
 
 export async function createOrganization(name: string): Promise<{ success: boolean; organization?: Pick<Organization, 'id' | 'name' | 'created_at'>; error?: string }> {
   try {

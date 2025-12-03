@@ -7,7 +7,7 @@ import { acceptInvitation } from '@/features/invitations/invitation-actions'
 import {
   createOrganizationWithPermissions,
   createWorkspaceWithPermissions,
-} from '@/lib/actions/onboarding-actions'
+} from '@/features/onboarding/onboarding-actions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'

@@ -8,7 +8,7 @@ import type {
     PermissionAction,
     Permission,
     Role,
-} from '@/lib/types/database'
+} from '@/types/database'
 import type {
     AssignRoleParams,
     CheckPermissionParams,

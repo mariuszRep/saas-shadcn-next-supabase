@@ -3,7 +3,7 @@ import type {
   Database,
   ObjectType,
   UsersPermissionsView
-} from '@/lib/types/database'
+} from '@/types/database'
 
 /**
  * Shared service for permission queries

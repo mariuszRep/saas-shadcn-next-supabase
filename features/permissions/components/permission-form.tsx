@@ -16,7 +16,7 @@ import {
 import { toast } from 'sonner'
 import { assignRole, getOrganizationWorkspaces } from '@/features/permissions/permission-actions'
 import { addPermissionSchema } from '@/features/permissions/validations'
-import type { ObjectType, Role } from '@/lib/types/database'
+import type { ObjectType, Role } from '@/types/database'
 
 interface PermissionFormProps {
     orgId: string
