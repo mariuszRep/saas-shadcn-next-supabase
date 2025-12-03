@@ -188,18 +188,9 @@ export async function acceptInvitation(
     // Accept invitation
     const result = await invitationService.acceptInvitation(invitationId)
 
-    // Get invitation details to revalidate paths
-    const details = await invitationService.getInvitedUserDetails(invitationId)
-
-    if (details?.orgId) {
-      revalidatePath(`/organization/${details.orgId}`)
-      revalidatePath(`/organization/${details.orgId}/settings`)
-    }
-
-    details?.workspacePermissions.forEach(wp => {
-      revalidatePath(`/workspace/${wp.workspaceId}`)
-      revalidatePath(`/workspace/${wp.workspaceId}/settings`)
-    })
+    // Note: No revalidatePath needed here because the calling page redirects
+    // immediately after acceptance, which causes a fresh page load with updated data.
+    // Adding revalidatePath during render causes Next.js errors in Next.js 15+.
 
     return {
       success: true,
