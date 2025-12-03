@@ -1,35 +1,23 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import { z } from 'zod'
 import { sendOrganizationInvitationEmail } from '@/lib/email/send-organization-invitation'
+import {
+  sendInvitationSchema,
+  workspacePermissionSchema,
+  assignWorkspacePermissionsSchema,
+  acceptInvitationSchema,
+  type SendInvitationParams,
+  type WorkspacePermission,
+  type AssignWorkspacePermissionsParams,
+  type AcceptInvitationParams,
+} from '@/features/invitations/validations'
 
-// Zod validation schemas
-const SendInvitationSchema = z.object({
-  email: z.string().email('Invalid email format'),
-  orgRoleId: z.string().uuid('Invalid organization role ID'),
-  orgId: z.string().uuid('Invalid organization ID'),
-  inviterId: z.string().uuid('Invalid inviter ID'),
-  redirectUrl: z.string().url().optional(),
-})
-
-const WorkspacePermissionSchema = z.object({
-  workspaceId: z.string().uuid('Invalid workspace ID'),
-  roleId: z.string().uuid('Invalid role ID'),
-})
-
-const AssignWorkspacePermissionsSchema = z.object({
-  userId: z.string().uuid('Invalid user ID'),
-  workspacePermissions: z.array(WorkspacePermissionSchema),
-})
-
-const AcceptInvitationSchema = z.object({
-  invitationId: z.string().uuid('Invalid invitation ID'),
-})
-
-export type SendInvitationParams = z.infer<typeof SendInvitationSchema>
-export type WorkspacePermission = z.infer<typeof WorkspacePermissionSchema>
-export type AssignWorkspacePermissionsParams = z.infer<typeof AssignWorkspacePermissionsSchema>
-export type AcceptInvitationParams = z.infer<typeof AcceptInvitationSchema>
+export type {
+  SendInvitationParams,
+  WorkspacePermission,
+  AssignWorkspacePermissionsParams,
+  AcceptInvitationParams,
+}
 
 export interface InvitedUserDetails {
   email: string
@@ -60,7 +48,7 @@ export class InvitationService {
    */
   async sendInvitationWithOrgRole(params: SendInvitationParams) {
     // Validate input
-    const validated = SendInvitationSchema.parse(params)
+    const validated = sendInvitationSchema.parse(params)
     const { email, orgRoleId, orgId, inviterId, redirectUrl } = validated
 
     // Calculate expiration (7 days from now)
@@ -237,7 +225,7 @@ export class InvitationService {
    */
   async assignWorkspacePermissions(params: AssignWorkspacePermissionsParams, inviterId: string) {
     // Validate input
-    const validated = AssignWorkspacePermissionsSchema.parse(params)
+    const validated = assignWorkspacePermissionsSchema.parse(params)
     const { userId, workspacePermissions } = validated
 
     if (workspacePermissions.length === 0) {
@@ -289,7 +277,7 @@ export class InvitationService {
    */
   async getInvitedUserDetails(invitationId: string): Promise<InvitedUserDetails | null> {
     // Validate input
-    AcceptInvitationSchema.parse({ invitationId })
+    acceptInvitationSchema.parse({ invitationId })
 
     // Get invitation with user email
     const { data: invitation, error: invitationError } = await this.supabase
@@ -380,7 +368,7 @@ export class InvitationService {
    */
   async acceptInvitation(invitationId: string) {
     // Validate input
-    AcceptInvitationSchema.parse({ invitationId })
+    acceptInvitationSchema.parse({ invitationId })
 
     // Get invitation
     const { data: invitation, error: getError } = await this.supabase
@@ -444,7 +432,7 @@ export class InvitationService {
    */
   async revokeInvitation(invitationId: string, organizationId: string) {
     // Validate input
-    AcceptInvitationSchema.parse({ invitationId })
+    acceptInvitationSchema.parse({ invitationId })
 
     // Get invitation with full details
     const { data: invitation, error: getError } = await this.supabase

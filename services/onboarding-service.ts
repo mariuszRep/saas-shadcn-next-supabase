@@ -1,29 +1,16 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
-import { z } from 'zod'
+import {
+  createOrganizationSchema,
+  createWorkspaceSchema,
+  type CreateOrganizationParams,
+  type CreateWorkspaceParams,
+} from '@/features/onboarding/validations'
 
-// Zod validation schemas
-const CreateOrganizationSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Organization name is required')
-    .max(100, 'Organization name must be less than 100 characters')
-    .trim(),
-  userId: z.string().uuid('Invalid user ID'),
-})
-
-const CreateWorkspaceSchema = z.object({
-  name: z
-    .string()
-    .min(1, 'Workspace name is required')
-    .max(100, 'Workspace name must be less than 100 characters')
-    .trim(),
-  orgId: z.string().uuid('Invalid organization ID'),
-  userId: z.string().uuid('Invalid user ID'),
-})
-
-export type CreateOrganizationParams = z.infer<typeof CreateOrganizationSchema>
-export type CreateWorkspaceParams = z.infer<typeof CreateWorkspaceSchema>
+export type {
+  CreateOrganizationParams,
+  CreateWorkspaceParams,
+}
 
 export interface OrganizationWithPermission {
   id: string
@@ -58,7 +45,7 @@ export class OnboardingService {
     params: CreateOrganizationParams
   ): Promise<OrganizationWithPermission> {
     // Validate input
-    const validated = CreateOrganizationSchema.parse(params)
+    const validated = createOrganizationSchema.parse(params)
     const { name } = validated
 
     // Create organization using RPC function (bypasses RLS)
@@ -86,7 +73,7 @@ export class OnboardingService {
     params: CreateWorkspaceParams
   ): Promise<WorkspaceWithPermission> {
     // Validate input
-    const validated = CreateWorkspaceSchema.parse(params)
+    const validated = createWorkspaceSchema.parse(params)
     const { name, orgId, userId } = validated
 
     // Create workspace using the authenticated client

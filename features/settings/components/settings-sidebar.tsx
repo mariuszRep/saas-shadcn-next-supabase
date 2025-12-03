@@ -2,8 +2,8 @@
 
 import * as React from 'react'
 import { Building2, Folder, Shield, ChevronRight, UserCog, Users, Mail } from 'lucide-react'
-import { NavSwitcher } from '@/features/shared/components/nav-switcher'
-import { NavUser } from '@/features/shared/components/nav-user'
+import { NavSwitcher } from '@/components/nav/nav-switcher'
+import { NavUser } from '@/components/nav/nav-user'
 import {
   Collapsible,
   CollapsibleContent,

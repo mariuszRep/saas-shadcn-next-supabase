@@ -3,106 +3,59 @@
 import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
-import { notFound } from 'next/navigation'
-import type { Organization, Workspace } from '@/types/database'
+import { WorkspaceService } from '@/services/workspace-service'
+import { createWorkspaceSchema, updateWorkspaceSchema } from './validations'
+import type { Workspace } from '@/types/database'
 
 // =====================================================
 // CACHE FUNCTIONS FOR SERVER COMPONENTS
 // =====================================================
 
-// Cache the organization fetch to deduplicate across Server Components
-export const getOrganization = cache(async (organizationId: string): Promise<Organization> => {
+/**
+ * Cache the organization fetch to deduplicate across Server Components
+ */
+export const getOrganization = cache(async (organizationId: string) => {
   const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('organizations')
-    .select('*')
-    .eq('id', organizationId)
-    .single()
-
-  if (error || !data) {
-    notFound()
-  }
-
-  return data
+  const workspaceService = new WorkspaceService(supabase)
+  return workspaceService.getOrganization(organizationId)
 })
 
-// Cache the workspace fetch to deduplicate across Server Components
-export const getWorkspace = cache(async (workspaceId: string, organizationId: string): Promise<Workspace> => {
+/**
+ * Cache the workspace fetch to deduplicate across Server Components
+ */
+export const getWorkspace = cache(async (workspaceId: string, organizationId: string) => {
   const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from('workspaces')
-    .select('*')
-    .eq('id', workspaceId)
-    .eq('organization_id', organizationId)
-    .single()
-
-  if (error || !data) {
-    notFound()
-  }
-
-  return data
+  const workspaceService = new WorkspaceService(supabase)
+  return workspaceService.getWorkspace(workspaceId, organizationId)
 })
 
-// Get user's personal organization and workspace for redirect
-export const getPersonalWorkspace = cache(async (userId: string): Promise<{ organizationId: string; workspaceId: string }> => {
+/**
+ * Get user's personal organization and workspace for redirect
+ */
+export const getPersonalWorkspace = cache(async (userId: string) => {
   const supabase = await createClient()
-
-  // Find personal organization
-  const { data: org, error: orgError } = await supabase
-    .from('organizations')
-    .select('id')
-    .eq('created_by', userId)
-    .eq('name', 'Personal')
-    .single()
-
-  if (orgError || !org) {
-    throw new Error('Personal organization not found')
-  }
-
-  // Find personal workspace
-  const { data: workspace, error: workspaceError } = await supabase
-    .from('workspaces')
-    .select('id')
-    .eq('organization_id', org.id)
-    .eq('name', 'Personal')
-    .single()
-
-  if (workspaceError || !workspace) {
-    throw new Error('Personal workspace not found')
-  }
-
-  return {
-    organizationId: org.id,
-    workspaceId: workspace.id,
-  }
+  const workspaceService = new WorkspaceService(supabase)
+  return workspaceService.getPersonalWorkspace(userId)
 })
 
-// Get first workspace for an organization
+/**
+ * Get first workspace for an organization
+ */
 export async function getFirstWorkspaceForOrg(organizationId: string): Promise<string> {
   const supabase = await createClient()
-
-  const { data: workspace, error } = await supabase
-    .from('workspaces')
-    .select('id')
-    .eq('organization_id', organizationId)
-    .order('created_at', { ascending: true })
-    .limit(1)
-    .single()
-
-  if (error || !workspace) {
-    throw new Error('No workspace found for this organization')
-  }
-
-  return workspace.id
+  const workspaceService = new WorkspaceService(supabase)
+  return workspaceService.getFirstWorkspaceForOrg(organizationId)
 }
 
 // =====================================================
-// WORKSPACE CRUD ACTIONS
+// WORKSPACE MUTATION ACTIONS
 // =====================================================
 
-export async function createWorkspace(organizationId: string, name: string): Promise<{ success: boolean; workspace?: Workspace; error?: string }> {
+export async function createWorkspace(organizationId: string, name: string): Promise<{
+  success: boolean
+  workspace?: Workspace
+  error?: string
+}> {
   try {
     const supabase = await createClient()
 
@@ -113,43 +66,32 @@ export async function createWorkspace(organizationId: string, name: string): Pro
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Validate workspace name
-    if (!name || name.trim().length === 0) {
-      return { success: false, error: 'Workspace name is required' }
+    // Validate input
+    const validation = createWorkspaceSchema.safeParse({ name, organizationId })
+    if (!validation.success) {
+      return { success: false, error: validation.error.issues[0].message }
     }
 
-    if (name.trim().length > 100) {
-      return { success: false, error: 'Workspace name is too long' }
-    }
-
-    // Create workspace
-    const { data, error } = await supabase
-      .from('workspaces')
-      .insert({
-        name: name.trim(),
-        organization_id: organizationId,
-        created_by: user.id,
-        updated_by: user.id,
-      })
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error creating workspace:', error)
-      return { success: false, error: 'Failed to create workspace' }
-    }
+    // Create workspace using service
+    const workspaceService = new WorkspaceService(supabase)
+    const workspace = await workspaceService.createWorkspace(validation.data, user.id)
 
     // Revalidate the path to refresh data
     revalidatePath(`/organization/${organizationId}`)
 
-    return { success: true, workspace: data }
+    return { success: true, workspace }
   } catch (error) {
     console.error('Unexpected error creating workspace:', error)
-    return { success: false, error: 'An unexpected error occurred' }
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+    return { success: false, error: errorMessage }
   }
 }
 
-export async function getOrganizationWorkspaces(organizationId: string): Promise<{ success: boolean; workspaces?: Workspace[]; error?: string }> {
+export async function getOrganizationWorkspaces(organizationId: string): Promise<{
+  success: boolean
+  workspaces?: Workspace[]
+  error?: string
+}> {
   try {
     const supabase = await createClient()
 
@@ -160,26 +102,23 @@ export async function getOrganizationWorkspaces(organizationId: string): Promise
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Fetch workspaces for the organization (RLS will handle permission filtering)
-    const { data, error } = await supabase
-      .from('workspaces')
-      .select('*')
-      .eq('organization_id', organizationId)
-      .order('created_at', { ascending: true })
+    // Fetch workspaces using service
+    const workspaceService = new WorkspaceService(supabase)
+    const workspaces = await workspaceService.getOrganizationWorkspaces(organizationId)
 
-    if (error) {
-      console.error('Error fetching workspaces:', error)
-      return { success: false, error: 'Failed to fetch workspaces' }
-    }
-
-    return { success: true, workspaces: data || [] }
+    return { success: true, workspaces }
   } catch (error) {
     console.error('Unexpected error fetching workspaces:', error)
-    return { success: false, error: 'An unexpected error occurred' }
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+    return { success: false, error: errorMessage }
   }
 }
 
-export async function updateWorkspace(workspaceId: string, name: string): Promise<{ success: boolean; workspace?: Workspace; error?: string }> {
+export async function updateWorkspace(workspaceId: string, name: string): Promise<{
+  success: boolean
+  workspace?: Workspace
+  error?: string
+}> {
   try {
     const supabase = await createClient()
 
@@ -190,42 +129,31 @@ export async function updateWorkspace(workspaceId: string, name: string): Promis
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Validate workspace name
-    if (!name || name.trim().length === 0) {
-      return { success: false, error: 'Workspace name is required' }
+    // Validate input
+    const validation = updateWorkspaceSchema.safeParse({ name })
+    if (!validation.success) {
+      return { success: false, error: validation.error.issues[0].message }
     }
 
-    if (name.trim().length > 100) {
-      return { success: false, error: 'Workspace name is too long' }
-    }
-
-    // Update workspace (RLS will handle permission checking)
-    const { data, error } = await supabase
-      .from('workspaces')
-      .update({
-        name: name.trim(),
-        updated_by: user.id,
-      })
-      .eq('id', workspaceId)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error updating workspace:', error)
-      return { success: false, error: 'Failed to update workspace' }
-    }
+    // Update workspace using service
+    const workspaceService = new WorkspaceService(supabase)
+    const workspace = await workspaceService.updateWorkspace(workspaceId, validation.data, user.id)
 
     // Revalidate path
     revalidatePath('/settings')
 
-    return { success: true, workspace: data }
+    return { success: true, workspace }
   } catch (error) {
     console.error('Unexpected error updating workspace:', error)
-    return { success: false, error: 'An unexpected error occurred' }
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+    return { success: false, error: errorMessage }
   }
 }
 
-export async function deleteWorkspace(workspaceId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteWorkspace(workspaceId: string): Promise<{
+  success: boolean
+  error?: string
+}> {
   try {
     const supabase = await createClient()
 
@@ -236,26 +164,12 @@ export async function deleteWorkspace(workspaceId: string): Promise<{ success: b
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Check if this is a personal workspace
-    const { data: workspace } = await supabase
-      .from('workspaces')
-      .select('name')
-      .eq('id', workspaceId)
-      .single()
+    // Delete workspace using service
+    const workspaceService = new WorkspaceService(supabase)
+    const result = await workspaceService.deleteWorkspace(workspaceId)
 
-    if (workspace && workspace.name === 'Personal') {
+    if (result.isPersonal) {
       return { success: false, error: 'Cannot delete personal workspace' }
-    }
-
-    // Delete workspace (RLS will handle permission checking)
-    const { error } = await supabase
-      .from('workspaces')
-      .delete()
-      .eq('id', workspaceId)
-
-    if (error) {
-      console.error('Error deleting workspace:', error)
-      return { success: false, error: 'Failed to delete workspace' }
     }
 
     // Revalidate path
@@ -264,6 +178,7 @@ export async function deleteWorkspace(workspaceId: string): Promise<{ success: b
     return { success: true }
   } catch (error) {
     console.error('Unexpected error deleting workspace:', error)
-    return { success: false, error: 'An unexpected error occurred' }
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+    return { success: false, error: errorMessage }
   }
 }

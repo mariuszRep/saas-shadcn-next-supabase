@@ -1,11 +1,17 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { revalidatePath } from 'next/cache'
+import { OrganizationService } from '@/services/organization-service'
+import { createOrganizationSchema, updateOrganizationSchema } from './validations'
 import type { Organization } from '@/types/database'
+import { revalidatePath } from 'next/cache'
 import { getFirstWorkspaceForOrg } from '@/features/workspaces/workspace-actions'
 
-export async function createOrganization(name: string): Promise<{ success: boolean; organization?: Pick<Organization, 'id' | 'name' | 'created_at'>; error?: string }> {
+export async function createOrganization(name: string): Promise<{
+  success: boolean
+  organization?: Pick<Organization, 'id' | 'name' | 'created_at'>
+  error?: string
+}> {
   try {
     const supabase = await createClient()
 
@@ -16,26 +22,15 @@ export async function createOrganization(name: string): Promise<{ success: boole
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Validate organization name
-    if (!name || name.trim().length === 0) {
-      return { success: false, error: 'Organization name is required' }
+    // Validate input
+    const validation = createOrganizationSchema.safeParse({ name })
+    if (!validation.success) {
+      return { success: false, error: validation.error.issues[0].message }
     }
 
-    if (name.trim().length > 100) {
-      return { success: false, error: 'Organization name is too long' }
-    }
-
-    // Create organization using RPC function (bypasses RLS)
-    const { data, error } = await supabase
-      .rpc('create_organization', { org_name: name.trim() })
-      .single()
-
-    if (error || !data) {
-      console.error('Error creating organization:', error)
-      return { success: false, error: 'Failed to create organization' }
-    }
-
-    const organization = data as { id: string; name: string; created_at: string }
+    // Create organization using service
+    const organizationService = new OrganizationService(supabase)
+    const organization = await organizationService.createOrganization(validation.data)
 
     // Revalidate settings pages
     revalidatePath('/settings')
@@ -44,11 +39,16 @@ export async function createOrganization(name: string): Promise<{ success: boole
     return { success: true, organization }
   } catch (error) {
     console.error('Unexpected error creating organization:', error)
-    return { success: false, error: 'An unexpected error occurred' }
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+    return { success: false, error: errorMessage }
   }
 }
 
-export async function getUserOrganizations(): Promise<{ success: boolean; organizations?: Organization[]; error?: string }> {
+export async function getUserOrganizations(): Promise<{
+  success: boolean
+  organizations?: Organization[]
+  error?: string
+}> {
   try {
     const supabase = await createClient()
 
@@ -59,25 +59,23 @@ export async function getUserOrganizations(): Promise<{ success: boolean; organi
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Fetch organizations (RLS will handle permission filtering)
-    const { data, error } = await supabase
-      .from('organizations')
-      .select('*')
-      .order('created_at', { ascending: true })
+    // Fetch organizations using service
+    const organizationService = new OrganizationService(supabase)
+    const organizations = await organizationService.getUserOrganizations()
 
-    if (error) {
-      console.error('Error fetching organizations:', error)
-      return { success: false, error: 'Failed to fetch organizations' }
-    }
-
-    return { success: true, organizations: data || [] }
+    return { success: true, organizations }
   } catch (error) {
     console.error('Unexpected error fetching organizations:', error)
-    return { success: false, error: 'An unexpected error occurred' }
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+    return { success: false, error: errorMessage }
   }
 }
 
-export async function updateOrganization(organizationId: string, name: string): Promise<{ success: boolean; organization?: Organization; error?: string }> {
+export async function updateOrganization(organizationId: string, name: string): Promise<{
+  success: boolean
+  organization?: Organization
+  error?: string
+}> {
   try {
     const supabase = await createClient()
 
@@ -88,43 +86,36 @@ export async function updateOrganization(organizationId: string, name: string): 
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Validate organization name
-    if (!name || name.trim().length === 0) {
-      return { success: false, error: 'Organization name is required' }
+    // Validate input
+    const validation = updateOrganizationSchema.safeParse({ name })
+    if (!validation.success) {
+      return { success: false, error: validation.error.issues[0].message }
     }
 
-    if (name.trim().length > 100) {
-      return { success: false, error: 'Organization name is too long' }
-    }
-
-    // Update organization (RLS will handle permission checking)
-    const { data, error } = await supabase
-      .from('organizations')
-      .update({
-        name: name.trim(),
-        updated_by: user.id,
-      })
-      .eq('id', organizationId)
-      .select()
-      .single()
-
-    if (error) {
-      console.error('Error updating organization:', error)
-      return { success: false, error: 'Failed to update organization' }
-    }
+    // Update organization using service
+    const organizationService = new OrganizationService(supabase)
+    const organization = await organizationService.updateOrganization(
+      organizationId,
+      validation.data,
+      user.id
+    )
 
     // Revalidate settings pages
     revalidatePath('/settings')
     revalidatePath(`/organization/${organizationId}/settings`)
 
-    return { success: true, organization: data }
+    return { success: true, organization }
   } catch (error) {
     console.error('Unexpected error updating organization:', error)
-    return { success: false, error: 'An unexpected error occurred' }
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+    return { success: false, error: errorMessage }
   }
 }
 
-export async function deleteOrganization(organizationId: string): Promise<{ success: boolean; error?: string }> {
+export async function deleteOrganization(organizationId: string): Promise<{
+  success: boolean
+  error?: string
+}> {
   try {
     const supabase = await createClient()
 
@@ -135,16 +126,9 @@ export async function deleteOrganization(organizationId: string): Promise<{ succ
       return { success: false, error: 'Unauthorized' }
     }
 
-    // Delete organization (RLS will handle permission checking)
-    const { error } = await supabase
-      .from('organizations')
-      .delete()
-      .eq('id', organizationId)
-
-    if (error) {
-      console.error('Error deleting organization:', error)
-      return { success: false, error: 'Failed to delete organization' }
-    }
+    // Delete organization using service
+    const organizationService = new OrganizationService(supabase)
+    await organizationService.deleteOrganization(organizationId)
 
     // Revalidate settings pages
     revalidatePath('/settings')
@@ -153,11 +137,16 @@ export async function deleteOrganization(organizationId: string): Promise<{ succ
     return { success: true }
   } catch (error) {
     console.error('Unexpected error deleting organization:', error)
-    return { success: false, error: 'An unexpected error occurred' }
+    const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+    return { success: false, error: errorMessage }
   }
 }
 
-export async function getOrganizationDefaultWorkspace(organizationId: string): Promise<{ success: boolean; workspaceId?: string; error?: string }> {
+export async function getOrganizationDefaultWorkspace(organizationId: string): Promise<{
+  success: boolean
+  workspaceId?: string
+  error?: string
+}> {
   try {
     const supabase = await createClient()
 
