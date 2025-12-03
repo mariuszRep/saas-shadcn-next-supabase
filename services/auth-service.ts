@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import type { AuthResult, OAuthProvider } from '@/features/auth/types'
+import type { AuthResult, OAuthProvider } from '@/types/auth'
 import {
   signInSchema,
   signUpSchema,

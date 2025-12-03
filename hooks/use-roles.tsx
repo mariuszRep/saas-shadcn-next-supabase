@@ -8,7 +8,7 @@ import {
   updateRole as updateRoleAction,
   deleteRole as deleteRoleAction,
 } from '@/features/roles/role-actions'
-import type { Role, CreateRoleInput, UpdateRoleInput } from '@/features/roles/types'
+import type { Role, CreateRoleInput, UpdateRoleInput } from '@/types/roles'
 
 interface UseRolesProps {
   organizationId?: string

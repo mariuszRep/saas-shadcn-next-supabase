@@ -3,7 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { RoleService } from '@/services/role-service'
-import type { CreateRoleInput, UpdateRoleInput, Role } from './types'
+import type { CreateRoleInput, UpdateRoleInput, Role } from '@/types/roles'
 
 // =====================================================
 // RLS ERROR HANDLER

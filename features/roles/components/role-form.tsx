@@ -11,7 +11,7 @@ import { DialogFooter } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 import { createRole, updateRole } from '../role-actions'
 import { roleFormSchema, updateRoleSchema } from '../validations'
-import type { Role } from '../types'
+import type { Role } from '@/types/roles'
 import type { PermissionAction } from '@/types/database'
 
 interface RoleFormProps {

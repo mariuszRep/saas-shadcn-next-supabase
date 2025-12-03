@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import type { Role } from '@/types/database'
-import type { PermissionWithDetails } from '../types'
+import type { PermissionWithDetails } from '@/types/permissions'
 import { usePermissions } from '@/hooks/use-permissions'
 import { PermissionForm } from './permission-form'
 import {

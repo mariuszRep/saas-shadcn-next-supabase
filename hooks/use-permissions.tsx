@@ -12,7 +12,7 @@ import {
 } from '@/features/permissions/permission-actions'
 import { getAllRoles } from '@/features/roles/role-actions'
 import type { Role, Permission } from '@/types/database'
-import type { PermissionWithDetails, OrgMember, AssignRoleParams } from '@/features/permissions/types'
+import type { PermissionWithDetails, OrgMember, AssignRoleParams } from '@/types/permissions'
 
 interface UsePermissionsProps {
   organizationId: string

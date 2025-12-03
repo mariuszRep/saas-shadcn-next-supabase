@@ -13,7 +13,7 @@ import type {
     AssignRoleParams,
     CheckPermissionParams,
     PermissionWithDetails,
-} from './types'
+} from '@/types/permissions'
 
 // =====================================================
 // RLS ERROR HANDLER

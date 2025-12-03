@@ -2,7 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import type { OAuthProvider } from './types'
+import type { OAuthProvider } from '@/types/auth'
 import {
   signInWithPassword,
   signUpWithPassword,
