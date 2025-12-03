@@ -43,7 +43,7 @@ import {
   AlertCircle,
 } from 'lucide-react'
 import { revokeInvitation, bulkRevokeInvitations } from '../invitation-actions'
-import { DataTable } from '@/components/composed/data-table'
+import { DataTable } from '@/components/data-table'
 import { useInvitations } from '@/hooks/use-invitations'
 import { InvitationForm } from './invitation-form'
 import { getAllRoles } from '@/features/roles/role-actions'

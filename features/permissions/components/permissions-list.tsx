@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { Plus, MoreHorizontal, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { DataTable } from '@/components/composed/data-table'
+import { DataTable } from '@/components/data-table'
 import { ColumnDef } from '@tanstack/react-table'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'

@@ -13,10 +13,10 @@ import {
 } from "lucide-react"
 import { useRouter, useParams } from "next/navigation"
 
-import { NavMain } from "@/components/nav/nav-main"
-import { NavProjects } from "@/components/nav/nav-projects"
-import { NavUser } from "@/components/nav/nav-user"
-import { NavSwitcher } from "@/components/nav/nav-switcher"
+import { NavMain } from "@/components/layout/nav-main"
+import { NavProjects } from "@/components/layout/nav-projects"
+import { NavUser } from "@/components/layout/nav-user"
+import { NavSwitcher } from "@/components/layout/nav-switcher"
 import {
   Sidebar,
   SidebarContent,
