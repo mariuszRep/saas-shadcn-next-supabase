@@ -1,0 +1,44 @@
+'use client'
+
+import { createContext, ReactNode, useContext } from 'react'
+import type { Organization, Workspace } from '@/types/database'
+
+interface OrganizationWorkspaceContextValue {
+  organization: Organization
+  workspace: Workspace
+}
+
+const OrganizationWorkspaceContext = createContext<OrganizationWorkspaceContextValue | null>(null)
+
+interface OrganizationWorkspaceProviderProps {
+  children: ReactNode
+  organization: Organization
+  workspace: Workspace
+}
+
+export function OrganizationWorkspaceProvider({
+  children,
+  organization,
+  workspace,
+}: OrganizationWorkspaceProviderProps) {
+  return (
+    <OrganizationWorkspaceContext.Provider value={{ organization, workspace }}>
+      {children}
+    </OrganizationWorkspaceContext.Provider>
+  )
+}
+
+export function useOrganizationWorkspace() {
+  const context = useContext(OrganizationWorkspaceContext)
+  return context
+}
+
+export function useOrganizationWorkspaceRequired() {
+  const context = useOrganizationWorkspace()
+
+  if (!context) {
+    throw new Error('useOrganizationWorkspaceRequired must be used within OrganizationWorkspaceProvider')
+  }
+
+  return context
+}

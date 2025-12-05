@@ -1,10 +1,10 @@
 'use client'
 
-import { useOrganizationWorkspaceRequired } from '@/components/providers/organization-workspace-provider'
-import { useUser } from './use-user'
+import { useOrganizationWorkspaceRequired } from '@/hooks/use-workspace-context'
+import { useAuth } from '@/hooks/use-auth'
 
 export function useWorkspace() {
-  const { user, loading: userLoading } = useUser()
+  const { user, loading: userLoading } = useAuth()
   const { organization, workspace } = useOrganizationWorkspaceRequired()
 
   return {

@@ -1,0 +1,216 @@
+"use client"
+
+import * as React from "react"
+import {
+  BookOpen,
+  Bot,
+  Folder,
+  Frame,
+  Map,
+  PieChart,
+  Settings2,
+  SquareTerminal,
+} from "lucide-react"
+import { useRouter, useParams } from "next/navigation"
+
+import { NavMain } from "@/components/layout/nav-main"
+import { NavProjects } from "@/components/layout/nav-projects"
+import { NavUser } from "@/components/layout/nav-user"
+import { NavSwitcher } from "@/components/layout/nav-switcher"
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarHeader,
+  SidebarRail,
+} from "@/components/ui/sidebar"
+import { useWorkspace } from "@/hooks/use-workspace"
+import { getOrganizationWorkspaces } from "@/features/workspaces/workspace-actions"
+import type { Workspace } from "@/types/database"
+
+// This is sample data.
+const data = {
+  navMain: [
+    {
+      title: "Playground",
+      url: "#",
+      icon: SquareTerminal,
+      isActive: true,
+      items: [
+        {
+          title: "History",
+          url: "#",
+        },
+        {
+          title: "Starred",
+          url: "#",
+        },
+        {
+          title: "Settings",
+          url: "#",
+        },
+      ],
+    },
+    {
+      title: "Models",
+      url: "#",
+      icon: Bot,
+      items: [
+        {
+          title: "Genesis",
+          url: "#",
+        },
+        {
+          title: "Explorer",
+          url: "#",
+        },
+        {
+          title: "Quantum",
+          url: "#",
+        },
+      ],
+    },
+    {
+      title: "Documentation",
+      url: "#",
+      icon: BookOpen,
+      items: [
+        {
+          title: "Introduction",
+          url: "#",
+        },
+        {
+          title: "Get Started",
+          url: "#",
+        },
+        {
+          title: "Tutorials",
+          url: "#",
+        },
+        {
+          title: "Changelog",
+          url: "#",
+        },
+      ],
+    },
+    {
+      title: "Settings",
+      url: "#",
+      icon: Settings2,
+      items: [
+        {
+          title: "General",
+          url: "#",
+        },
+        {
+          title: "Team",
+          url: "#",
+        },
+        {
+          title: "Billing",
+          url: "#",
+        },
+        {
+          title: "Limits",
+          url: "#",
+        },
+      ],
+    },
+  ],
+  projects: [
+    {
+      name: "Design Engineering",
+      url: "#",
+      icon: Frame,
+    },
+    {
+      name: "Sales & Marketing",
+      url: "#",
+      icon: PieChart,
+    },
+    {
+      name: "Travel",
+      url: "#",
+      icon: Map,
+    },
+  ],
+}
+
+export function WorkspaceSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { user, organization } = useWorkspace()
+  const [workspaces, setWorkspaces] = React.useState<Workspace[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const router = useRouter()
+  const params = useParams()
+
+  const organizationId = params?.organizationId as string | undefined
+  const workspaceId = params?.workspaceId as string | undefined
+
+  React.useEffect(() => {
+    async function fetchWorkspaces() {
+      if (!organization?.id) {
+        setLoading(false)
+        return
+      }
+
+      const result = await getOrganizationWorkspaces(organization.id)
+
+      if (result.success && result.workspaces) {
+        setWorkspaces(result.workspaces)
+      }
+
+      setLoading(false)
+    }
+
+    fetchWorkspaces()
+  }, [organization?.id])
+
+  const handleWorkspaceSwitch = (workspace: { id: string; name: string }) => {
+    if (organizationId) {
+      router.push(`/organization/${organizationId}/workspace/${workspace.id}`)
+    }
+  }
+
+  const userData = user
+    ? {
+      name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+      email: user.email || '',
+      avatar: user.user_metadata?.avatar_url || '',
+    }
+    : {
+      name: 'Guest',
+      email: 'guest@example.com',
+      avatar: '',
+    }
+
+  const manageUrl = organizationId
+    ? `/organization/${organizationId}/settings?section=workspaces`
+    : '/settings'
+
+  return (
+    <Sidebar collapsible="icon" {...props}>
+      <SidebarHeader>
+        {loading ? (
+          <div className="p-4 text-sm text-muted-foreground">Loading workspaces...</div>
+        ) : (
+          <NavSwitcher
+            items={workspaces}
+            selectedId={workspaceId}
+            onSelect={handleWorkspaceSwitch}
+            icon={Folder}
+            label="Workspace"
+            manageUrl={manageUrl}
+          />
+        )}
+      </SidebarHeader>
+      <SidebarContent>
+        <NavMain items={data.navMain} />
+        <NavProjects projects={data.projects} />
+      </SidebarContent>
+      <SidebarFooter>
+        <NavUser user={userData} />
+      </SidebarFooter>
+      <SidebarRail />
+    </Sidebar>
+  )
+}

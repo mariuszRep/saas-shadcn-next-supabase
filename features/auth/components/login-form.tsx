@@ -1,0 +1,134 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { signIn, sendMagicLink } from '@/features/auth/auth-actions'
+
+export function LoginForm() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState('password')
+  const [error, setError] = useState<string | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+
+  // Check for errors in URL params (e.g., expired magic link)
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam) {
+      setError(decodeURIComponent(errorParam))
+    }
+  }, [searchParams])
+
+  async function handleSubmit(formData: FormData) {
+    setIsLoading(true)
+    setError(null)
+    setMessage(null)
+
+    try {
+      if (activeTab === 'magic-link') {
+        const result = await sendMagicLink(formData)
+        if (result.error) {
+          setError(result.error)
+        } else {
+          setMessage('Check your email for the magic link!')
+        }
+      } else {
+        const result = await signIn(formData)
+        if (result.error) {
+          setError(result.error)
+        }
+      }
+    } catch (err) {
+      setError('An unexpected error occurred')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Welcome back</CardTitle>
+        <CardDescription>
+          Sign in to your account to continue
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="password">Password</TabsTrigger>
+            <TabsTrigger value="magic-link">Magic Link</TabsTrigger>
+          </TabsList>
+
+          <form action={handleSubmit} className="space-y-4 mt-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                placeholder="you@example.com"
+                required
+                disabled={isLoading}
+              />
+            </div>
+
+            <TabsContent value="password" className="mt-0 space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  name="password"
+                  type="password"
+                  required={activeTab === 'password'}
+                  disabled={isLoading}
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="magic-link" className="mt-0">
+              <p className="text-sm text-muted-foreground">
+                We&apos;ll send you a magic link to sign in without a password.
+              </p>
+            </TabsContent>
+
+            {error && (
+              <div className="text-sm text-red-500 dark:text-red-400">
+                {error}
+              </div>
+            )}
+
+            {message && (
+              <div className="text-sm text-green-500 dark:text-green-400">
+                {message}
+              </div>
+            )}
+
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Loading...' : activeTab === 'magic-link' ? 'Send Magic Link' : 'Sign In'}
+            </Button>
+          </form>
+
+          {activeTab === 'password' && (
+            <div className="text-center mt-4">
+              <button
+                type="button"
+                onClick={() => router.push('/forgot-password')}
+                className="text-sm text-primary hover:underline"
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
+        </Tabs>
+      </CardContent>
+    </Card>
+  )
+}

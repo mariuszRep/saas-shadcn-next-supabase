@@ -1,0 +1,127 @@
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database'
+import {
+  createOrganizationSchema,
+  createWorkspaceSchema,
+  type CreateOrganizationParams,
+  type CreateWorkspaceParams,
+} from '@/features/onboarding/validations'
+
+export type {
+  CreateOrganizationParams,
+  CreateWorkspaceParams,
+}
+
+export interface OrganizationWithPermission {
+  id: string
+  name: string
+  created_at: string
+}
+
+export interface WorkspaceWithPermission {
+  id: string
+  name: string
+  organization_id: string
+  created_at: string
+}
+
+export interface OrganizationMembershipStatus {
+  hasOrganizations: boolean
+  organizationCount: number
+}
+
+/**
+ * Service for managing onboarding flow
+ * Handles organization and workspace creation with automatic permission assignment
+ */
+export class OnboardingService {
+  constructor(private readonly supabase: SupabaseClient<Database>) {}
+
+  /**
+   * Create an organization and assign Owner role to the creator
+   * Uses SECURITY DEFINER function to bypass RLS for INSERT with RETURNING
+   */
+  async createOrganizationWithPermissions(
+    params: CreateOrganizationParams
+  ): Promise<OrganizationWithPermission> {
+    // Validate input
+    const validated = createOrganizationSchema.parse(params)
+    const { name } = validated
+
+    // Create organization using RPC function (bypasses RLS)
+    const { data: organization, error: orgError } = await this.supabase
+      .rpc('create_organization', { org_name: name })
+      .single()
+
+    if (orgError || !organization) {
+      console.error('Organization creation error:', orgError)
+      throw new Error(`Failed to create organization: ${orgError?.message || 'Unknown error'}`)
+    }
+
+    return {
+      id: organization.id,
+      name: organization.name,
+      created_at: organization.created_at,
+    }
+  }
+
+  /**
+   * Create a workspace and assign Owner role to the creator
+   * Uses transaction to ensure atomicity
+   */
+  async createWorkspaceWithPermissions(
+    params: CreateWorkspaceParams
+  ): Promise<WorkspaceWithPermission> {
+    // Validate input
+    const validated = createWorkspaceSchema.parse(params)
+    const { name, orgId, userId } = validated
+
+    // Create workspace using the authenticated client
+    const { data: workspace, error: workspaceError } = await this.supabase
+      .from('workspaces')
+      .insert({
+        name,
+        organization_id: orgId,
+        created_by: userId,
+        updated_by: userId,
+      })
+      .select()
+      .single()
+
+    if (workspaceError || !workspace) {
+      throw new Error(
+        `Failed to create workspace: ${workspaceError?.message || 'Unknown error'}`
+      )
+    }
+
+    return {
+      id: workspace.id,
+      name: workspace.name,
+      organization_id: workspace.organization_id,
+      created_at: workspace.created_at,
+    }
+  }
+
+  /**
+   * Check if a user has any organization memberships
+   * Queries the users_permissions view for organization access
+   */
+  async checkUserOrganizationMembership(): Promise<OrganizationMembershipStatus> {
+    // Query users_permissions view for organization memberships
+    const { data, error } = await this.supabase
+      .from('users_permissions')
+      .select('object_id', { count: 'exact', head: false })
+      .eq('object_type', 'organization')
+
+    if (error) {
+      throw new Error(`Failed to check organization membership: ${error.message}`)
+    }
+
+    const organizationCount = data?.length || 0
+
+    return {
+      hasOrganizations: organizationCount > 0,
+      organizationCount,
+    }
+  }
+}
